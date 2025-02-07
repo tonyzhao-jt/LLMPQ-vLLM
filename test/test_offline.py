@@ -13,7 +13,9 @@ prompts = [
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=100)
 
 # Create an LLM.
-llm = LLM(model="facebook/opt-125m")
+# llm = LLM(model="facebook/opt-125m", cpu_offload_gb=10) # try cpu offload
+# llm = LLM(model="meta-llama/Llama-3.2-1B", load_format='dummy') # try dummy 
+llm = LLM(model="meta-llama/Llama-3.2-1B", cpu_offload_gb=10) # try cpu offload
 # Generate texts from the prompts. The output is a list of RequestOutput objects
 # that contain the prompt, generated text, and other information.
 outputs = llm.generate(prompts, sampling_params)
