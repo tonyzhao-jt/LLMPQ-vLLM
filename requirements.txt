@@ -1,2 +1,3 @@
 vllm
 pre-commit
+datasets
