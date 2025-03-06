@@ -1,7 +1,7 @@
 all__ = [
-    "quant_to_bit_c4",
+    "quantize_to_bit_gptq",
     "save_with_pickle",
 ]
 
 from .misc import save_with_pickle  # noqa
-from .quantize import quant_to_bit_c4  # noqa
+from .quantize import quantize_to_bit_gptq  # noqa

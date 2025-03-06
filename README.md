@@ -13,6 +13,7 @@ LLM-PQ v2
 (1)indicator gen：https://github.com/tonyzhao-jt/LLM-PQ/tree/main/scripts/accuracyPPL
 用 gen ind 生成 indicator, hess
 (2)profiler: https://github.com/tonyzhao-jt/LLM-PQ/tree/main/scripts/profile
+https://github.com/vllm-project/vllm/pull/11125/files
 先用下面这个简单测算不同 GPU 下的 Latency （可以加一个 TP 的维度，默认用 TP=node）
 https://github.com/ModelCloud/GPTQModel?tab=readme-ov-file#dynamic-quantization-per-module-quantizeconfig-override
 打包成对应之前的 fit 格式. 通信还是用之前的测法 （可有可无了属于是）
