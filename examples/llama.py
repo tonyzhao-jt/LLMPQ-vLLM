@@ -1,14 +1,15 @@
 # pip install -v gptqmodel --no-build-isolation
-# pip install bitsandbytes>=0.45.0
+# pip install bitsandbytes
 import os
 import time
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from vllm import LLM, SamplingParams
+from collections import defaultdict
 
 from llmpq.profiler import shard_model
-from llmpq.utils import quantize_to_bit_gptq
+from llmpq.utils import quantize_model, QUANTIZATION_REGISTRY
 
 PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
 PROFILER_PARSED = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile_parsed"
@@ -30,15 +31,18 @@ if __name__ == "__main__":
     # out_2 = loaded_model(input_ids)
 
     # consider_bitwidth = [3, 4, 8]
-    consider_bitwidth = [4, 8]  # 8bit can be run directly
-    bitwidth_model_path = {}
-    for bits in consider_bitwidth:
-        quant_path = f"tmp/llm_pq/{model_shard_name}-sharded-{bits}"
-        abs_path = os.path.abspath(quant_path)
-        quantize_to_bit_gptq(save_path, abs_path, bits=bits)
-        bitwidth_model_path[bits] = abs_path
-
-    method_bitwidth_model_path = {"gptq": bitwidth_model_path}
+    consider_bitwidth = {
+        # 'gptq': [4, 8],
+        # 'bitsandbytes': [4, 8],
+        'awq': [4, 8]
+    }
+    method_bitwidth_model_path = defaultdict(dict)
+    for method, bits in consider_bitwidth.items():
+        for _bits in bits:
+            quant_path = f"tmp/llm_pq/{model_shard_name}-sharded-{method}-{_bits}"
+            abs_path = os.path.abspath(quant_path)
+            quantize_model(method, save_path, abs_path, bits=_bits)
+            method_bitwidth_model_path[method][_bits] = abs_path
 
     prompts = [
         "Hello, my name is",
@@ -54,9 +58,15 @@ if __name__ == "__main__":
     for qmethod, bitwidth_model_path in method_bitwidth_model_path.items():
         for bit, model_path in bitwidth_model_path.items():
             # llm = LLM(model=model_path, tensor_parallel_size=2, dtype=torch.float16, load_format="dummy") # noqa
-            llm = LLM(
-                model=model_path, tensor_parallel_size=1, dtype=torch.float16  # noqa
-            )  # support only 2,4,8 now else bug out
+            if qmethod == "gptq":
+                llm = LLM(model=model_path, tensor_parallel_size=1, dtype=torch.float16)  # noqa
+            elif qmethod == "bitsandbytes":
+                llm = LLM(model=model_path, tensor_parallel_size=1, dtype=torch.bfloat16, trust_remote_code=True, 
+                          quantization="bitsandbytes", load_format="bitsandbytes")  # noqa
+            elif qmethod == 'awq':
+                llm = LLM(model=model_path, tensor_parallel_size=1, quantization="AWQ")  # noqa
+            else:
+                raise ValueError(f"Unknown quantization method: {qmethod}. Available methods: {list(QUANTIZATION_REGISTRY.keys())}")  # noqa
 
             llm.start_profile()
             outputs = llm.generate(prompts, sampling_params)
