@@ -38,6 +38,8 @@ if __name__ == "__main__":
         quantize_to_bit_gptq(save_path, abs_path, bits=bits)
         bitwidth_model_path[bits] = abs_path
 
+    method_bitwidth_model_path = {"gptq": bitwidth_model_path}
+
     prompts = [
         "Hello, my name is",
         "The president of the United States is",
@@ -49,28 +51,33 @@ if __name__ == "__main__":
     # do profiling
     # collect the profiling result
     sampling_params = SamplingParams(temperature=0.6, top_p=0.9)
-    for bit, model_path in bitwidth_model_path.items():
-        # llm = LLM(model=model_path, tensor_parallel_size=2, dtype=torch.float16, load_format="dummy") # noqa
-        llm = LLM(
-            model=model_path, tensor_parallel_size=1, dtype=torch.float16  # noqa
-        )  # support only 2,4,8 now else bug out
+    for qmethod, bitwidth_model_path in method_bitwidth_model_path.items():
+        for bit, model_path in bitwidth_model_path.items():
+            # llm = LLM(model=model_path, tensor_parallel_size=2, dtype=torch.float16, load_format="dummy") # noqa
+            llm = LLM(
+                model=model_path, tensor_parallel_size=1, dtype=torch.float16  # noqa
+            )  # support only 2,4,8 now else bug out
 
-        llm.start_profile()
-        outputs = llm.generate(prompts, sampling_params)
-        llm.stop_profile()
-        for output in outputs:
-            prompt = output.prompt
-            generated_text = output.outputs[0].text
-            print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")
+            llm.start_profile()
+            outputs = llm.generate(prompts, sampling_params)
+            llm.stop_profile()
+            for output in outputs:
+                prompt = output.prompt
+                generated_text = output.outputs[0].text
+                print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")  # noqa
 
-        time.sleep(10)
-        del llm
-        # find the first file under the profiler, rename it, move to PROFILER_PARSED # noqa
-        for file in os.listdir(PROFILER_RAW):
-            if file.endswith(".gz"):
-                os.rename(
-                    os.path.join(PROFILER_RAW, file),
-                    os.path.join(
-                        PROFILER_PARSED, f"{model_shard_name}-{bit}-{file}"
-                    ),  # noqa
-                )
+            time.sleep(10)
+            del llm
+            # find the first file under the profiler, rename it, move to PROFILER_PARSED # noqa
+            # if Profile RAW not exists, create it
+            if not os.path.exists(PROFILER_PARSED):
+                os.makedirs(PROFILER_PARSED)
+            for file in os.listdir(PROFILER_RAW):
+                if file.endswith(".gz"):
+                    os.rename(
+                        os.path.join(PROFILER_RAW, file),
+                        os.path.join(
+                            PROFILER_PARSED,
+                            f"{model_shard_name}-{qmethod}-{bit}-{file}",
+                        ),  # noqa
+                    )
