@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from llmpq.profiler import shard_model
 from llmpq.utils import quantize_model, QUANTIZATION_REGISTRY
+from llmpq.dataset import AIMEDataset
 
 PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
 PROFILER_PARSED = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile_parsed"
@@ -50,6 +51,8 @@ if __name__ == "__main__":
         "The capital of France is",
         "The future of AI is",
     ]
+
+    prompts = AIMEDataset().sample_n_prompts(10)
 
     # load it via VLLM
     # do profiling
