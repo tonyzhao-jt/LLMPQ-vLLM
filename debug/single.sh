@@ -1,0 +1,1 @@
+NCCL_DEBUG=TRACE torchrun --nproc-per-node=8 test.py

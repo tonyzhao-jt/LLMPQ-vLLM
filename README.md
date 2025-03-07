@@ -23,3 +23,5 @@ https://github.com/ModelCloud/GPTQModel?tab=readme-ov-file#dynamic-quantization-
 用优化器解，解完后，得到计划直接用 vllm 跑 (dummy 就行了) (核心是看怎么 PP 了，quant 这边直接 load 就行了)
 (4)讨论一下 chunked prefill 啥的, 从效果上也是堆叠到上面
 PD 分离有点 contradict， KD 分离 本身增加了memory 使用，但 quant 一般永远在 memory scarse 的情况下
+
+

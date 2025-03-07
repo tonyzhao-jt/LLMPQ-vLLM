@@ -7,7 +7,8 @@ from vllm import LLM, SamplingParams
 '''
 vllm serve gpt2 \
 --tensor-parallel-size 4 \
---pipeline-parallel-size 2
+--pipeline-parallel-size 2 \
+--distributed_executor_backend ray
 '''
 
 # Sample prompts.
@@ -25,7 +26,7 @@ llm = LLM(model="meta-llama/Llama-3.2-1B",
           pipeline_parallel_size=4, 
           load_format='dummy', 
           enforce_eager=True, # try cpu offload
-          distributed_executor_backend='ray') # try cpu offload
+          ) # try cpu offload
 
 outputs = llm.generate(prompts, sampling_params)
 # Print the outputs.
