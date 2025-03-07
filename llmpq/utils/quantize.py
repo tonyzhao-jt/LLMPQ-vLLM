@@ -1,18 +1,21 @@
-from functools import partial
 from typing import Callable, Dict
-from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+
 import torch
+from datasets import load_dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # 定义量化方法的注册表
 QUANTIZATION_REGISTRY: Dict[str, Callable] = {}
+
 
 # 注册装饰器
 def register_quantization_method(name: str):
     def decorator(func: Callable):
         QUANTIZATION_REGISTRY[name] = func
         return func
+
     return decorator
+
 
 # 注册 GPTQ 量化方法
 @register_quantization_method("gptq")
@@ -42,7 +45,10 @@ def quantize_to_bit_gptq(model_id: str, quant_path: str, bits=4):
     model.quantize(calibration_dataset, batch_size=2)
     model.save(quant_path)
 
-    print(f"Model quantized to {bits}-bit using GPTQ and saved to {quant_path}.")
+    print(
+        f"Model quantized to {bits}-bit using GPTQ and saved to {quant_path}."
+    )  # noqa
+
 
 @register_quantization_method("bitsandbytes")
 def quantize_to_bit_bitsandbytes(model_id: str, quant_path: str, bits=4):
@@ -56,6 +62,7 @@ def quantize_to_bit_bitsandbytes(model_id: str, quant_path: str, bits=4):
     """
     if bits not in [4, 8]:
         raise ValueError("`bits` must be either 4 or 8.")
+    from transformers import BitsAndBytesConfig
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -81,7 +88,10 @@ def quantize_to_bit_bitsandbytes(model_id: str, quant_path: str, bits=4):
     model.save_pretrained(quant_path)
     tokenizer.save_pretrained(quant_path)
 
-    print(f"Model quantized to {bits}-bit using bitsandbytes and saved to {quant_path}.")
+    print(
+        f"Model quantized to {bits}-bit using bitsandbytes and saved to {quant_path}."  # noqa
+    )
+
 
 @register_quantization_method("awq")
 def quantize_to_bit_awq(model_id: str, quant_path: str, bits=4):
@@ -93,9 +103,10 @@ def quantize_to_bit_awq(model_id: str, quant_path: str, bits=4):
         quant_path (str): The path to save the quantized model.
         bits (int): The quantization precision (only 4 is supported for AWQ).
     """
-    if bits not in [4, 8]:
+    if bits not in [4]:
         raise ValueError("`bits` must be 4 for AWQ quantization.")
 
+    # require transformers==4.47.1 transformers now
     from awq import AutoAWQForCausalLM
 
     # 定义量化配置
@@ -116,7 +127,10 @@ def quantize_to_bit_awq(model_id: str, quant_path: str, bits=4):
     model.save_quantized(quant_path)
     tokenizer.save_pretrained(quant_path)
 
-    print(f'Model quantized to {bits}-bit using AWQ and saved at "{quant_path}".')
+    print(
+        f'Model quantized to {bits}-bit using AWQ and saved at "{quant_path}".'
+    )  # noqa
+
 
 def quantize_model(method: str, model_id: str, quant_path: str, bits=4):
     """
@@ -129,7 +143,9 @@ def quantize_model(method: str, model_id: str, quant_path: str, bits=4):
         bits (int): The quantization precision.
     """
     if method not in QUANTIZATION_REGISTRY:
-        raise ValueError(f"Unknown quantization method: {method}. Available methods: {list(QUANTIZATION_REGISTRY.keys())}")
+        raise ValueError(
+            f"Unknown quantization method: {method}. Available methods: {list(QUANTIZATION_REGISTRY.keys())}"  # noqa
+        )
 
     quantize_func = QUANTIZATION_REGISTRY[method]
     quantize_func(model_id, quant_path, bits)

@@ -1,8 +1,11 @@
+from typing import Dict, List
+
 from .dataset_base import BaseDataset
-from typing import List, Dict
+
+
 class GPQADataset(BaseDataset):
     def __init__(self):
-        super().__init__("path/to/gpqa_dataset")  # Replace with actual GPQA dataset path
+        super().__init__(["Idavidrein/gpqa"])
 
     def construct_prompt(self, sampled_data: List[Dict]) -> List[str]:
         """
@@ -16,11 +19,8 @@ class GPQADataset(BaseDataset):
         """
         prompts = []
         for sample in sampled_data:
-            question = sample['Question']
-            answer = sample['Answer']
-            prompt = (
-                f"Question: {question}\n"
-                f"Answer: {answer}"
-            )
+            question = sample["Question"]
+            answer = sample["Answer"]
+            prompt = f"Question: {question}\n" f"Answer: {answer}"
             prompts.append(prompt)
         return prompts
