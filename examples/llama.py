@@ -28,7 +28,8 @@ if __name__ == "__main__":
     # make save path abs path
     save_path = os.path.abspath(save_path)
 
-    shard_model(model_id, save_path)
+    # one embedding, two decoder layer, one processor(LM) # noqa 
+    shard_model(model_id, save_path, layer_num = 2) 
     loaded_model = AutoModelForCausalLM.from_pretrained(save_path)
 
     # validate its
