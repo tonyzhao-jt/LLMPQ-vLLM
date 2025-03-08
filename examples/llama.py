@@ -2,6 +2,7 @@
 # pip install bitsandbytes
 import os
 import time
+import gzip
 from collections import defaultdict
 
 import torch
@@ -11,16 +12,19 @@ from vllm import LLM, SamplingParams
 from llmpq.dataset import AIMEDataset
 from llmpq.profiler import shard_model
 from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
+import shutil
 
 PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
 PROFILER_PARSED = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile_parsed"
+REPEAT = 10
+WARMUP = 5
 os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
 if __name__ == "__main__":
     model_id = "meta-llama/Llama-3.2-1B-Instruct"
-    model_shard_name = "Llama-3.2-1B-Instruct"
+    model_shard_name = "Llama_3.2_1B_Instruct_sharded"
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     # Validate this model still works
-    save_path = f"tmp/llm_pq/{model_shard_name}-sharded"
+    save_path = f"tmp/llm_pq/{model_shard_name}"
     # make save path abs path
     save_path = os.path.abspath(save_path)
 
@@ -30,31 +34,29 @@ if __name__ == "__main__":
     # validate its
     # input_ids = tokenizer.encode("hello world", return_tensors="pt")
     # out_2 = loaded_model(input_ids)
+    prompts = AIMEDataset().sample_n_prompts(10)
+    tp_size = 1 # tp = 2 will hang the process. We give a rough estimation of tp cost now.
 
     # consider_bitwidth = [3, 4, 8]
     consider_bitwidth = {
-        # 'gptq': [4, 8],
+        'gptq': [4, 8],
         # 'bitsandbytes': [4, 8],
-        "awq": [4]  # only support 4
+        # "awq": [4]  # only support 4
     }
     method_bitwidth_model_path = defaultdict(dict)
     for method, bits in consider_bitwidth.items():
         for _bits in bits:
             quant_path = (
-                f"tmp/llm_pq/{model_shard_name}-sharded-{method}-{_bits}"  # noqa
+                f"tmp/llm_pq/{model_shard_name}-{method}-{_bits}"  # noqa
             )
             abs_path = os.path.abspath(quant_path)
-            quantize_model(method, save_path, abs_path, bits=_bits)
+            # check if has the file
+            if not os.path.exists(abs_path):
+                quantize_model(method, save_path, abs_path, bits=_bits)
+            else:
+                print(f"Found {abs_path}, skip quantization")
             method_bitwidth_model_path[method][_bits] = abs_path
 
-    prompts = [
-        "Hello, my name is",
-        "The president of the United States is",
-        "The capital of France is",
-        "The future of AI is",
-    ]
-
-    prompts = AIMEDataset().sample_n_prompts(10)
 
     # load it via VLLM
     # do profiling
@@ -64,32 +66,46 @@ if __name__ == "__main__":
         for bit, model_path in bitwidth_model_path.items():
             # llm = LLM(model=model_path, tensor_parallel_size=2, dtype=torch.float16, load_format="dummy") # noqa
             if qmethod == "gptq":
-                llm = LLM(
-                    model=model_path,
-                    tensor_parallel_size=1,
-                    dtype=torch.float16,  # noqa
-                )  # noqa
+                if bit == 3:
+                    # now not support 3 bit
+                    llm = LLM(
+                        model=model_path,
+                        tensor_parallel_size=2, 
+                        dtype=torch.half,  # noqa
+                        quantization='gptq',
+                    )  # noqa
+                else:
+                    llm = LLM(
+                        model=model_path,
+                        tensor_parallel_size=tp_size,
+                        dtype=torch.half,  # noqa
+                    )  # noqa
             elif qmethod == "bitsandbytes":
                 llm = LLM(
                     model=model_path,
-                    tensor_parallel_size=1,
-                    dtype=torch.bfloat16,
+                    tensor_parallel_size=tp_size,
+                    dtype=torch.half,
                     trust_remote_code=True,
                     quantization="bitsandbytes",
                     load_format="bitsandbytes",
                 )  # noqa
             elif qmethod == "awq":
                 llm = LLM(
-                    model=model_path, tensor_parallel_size=1, quantization="AWQ"  # noqa
+                    model=model_path, tensor_parallel_size=tp_size, quantization="AWQ"  # noqa
                 )  # noqa
             else:
                 raise ValueError(
                     f"Unknown quantization method: {qmethod}. Available methods: {list(QUANTIZATION_REGISTRY.keys())}"  # noqa
                 )  # noqa
 
+            for _ in range(WARMUP):
+                outputs = llm.generate(prompts, sampling_params)
+
             llm.start_profile()
-            outputs = llm.generate(prompts, sampling_params)
+            for _ in range(REPEAT):
+                outputs = llm.generate(prompts, sampling_params)
             llm.stop_profile()
+
             for output in outputs:
                 prompt = output.prompt
                 generated_text = output.outputs[0].text
@@ -103,10 +119,15 @@ if __name__ == "__main__":
                 os.makedirs(PROFILER_PARSED)
             for file in os.listdir(PROFILER_RAW):
                 if file.endswith(".gz"):
+                    new_file_name = f"{model_shard_name}-{qmethod}-{bit}-{tp_size}-pt.trace.json.gz"  # noqa
                     os.rename(
                         os.path.join(PROFILER_RAW, file),
                         os.path.join(
                             PROFILER_PARSED,
-                            f"{model_shard_name}-{qmethod}-{bit}-{file}",
+                            new_file_name, 
                         ),  # noqa
                     )
+                    # unzip it (.gz format)
+                    with gzip.open(os.path.join(PROFILER_PARSED, new_file_name), 'rb') as f_in: # noqa
+                        with open(os.path.join(PROFILER_PARSED, new_file_name[:-3]), 'wb') as f_out: # noqa
+                            shutil.copyfileobj(f_in, f_out)
