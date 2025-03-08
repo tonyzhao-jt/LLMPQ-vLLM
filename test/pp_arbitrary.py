@@ -33,6 +33,6 @@ os.environ["VLLM_PP_LAYER_PARTITION"] = partition_config
 """
     vllm serve meta-llama/Llama-3.2-1B \
     --tensor-parallel-size 4 \
-    --pipeline-parallel-size 4 \
+    --pipeline-parallel-size 2 \
     --load-format dummy
 """
