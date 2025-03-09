@@ -50,7 +50,7 @@ export VLLM_PP_LAYER_PARTITION="{self.partition_config}"
         """.strip()
 
         exec_scripts = f"""
-vllm serve meta-llama/Llama-3.2-1B \\
+vllm serve <your_quant_path> \\
     --tensor-parallel-size 4 \\
     --pipeline-parallel-size 2 \\
 {"--load-format dummy" if run_dummy else ""}

@@ -14,7 +14,7 @@ if __name__ == "__main__":
         adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
         num_layers=16,
     )
-    quant_path = "./tmp/quantized-dynamic"
+    quant_path = "./tmp/Llama-3.2-1B-Instruct-gptqmodel-4bit-dynamic"
     if os.path.exists(quant_path):
         # load the model from the path.
         model = QUANTIZATION_REGISTRY[pq_config.qmethod].get_model(quant_path)
