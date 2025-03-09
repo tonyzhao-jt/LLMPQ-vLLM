@@ -14,16 +14,13 @@ if __name__ == "__main__":
         adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
         num_layers=16,
     )
-    pq_config.save("./tmp")
     quant_path = "./tmp/quantized-dynamic"
     if os.path.exists(quant_path):
         # load the model from the path.
         model = QUANTIZATION_REGISTRY[pq_config.qmethod].get_model(quant_path)
-        import pdb
-
-        pdb.set_trace()
     else:
         # perform adaptive quantization based on that.
         quantize_model_adaptive(
             pq_config.model_id_or_path, quant_path, pq_config
         )  # noqa
+    pq_config.save("./tmp")
