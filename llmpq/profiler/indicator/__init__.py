@@ -1,5 +1,10 @@
-from .datautils import get_loaders # noqa
+from .base_indicator import Indicator, MixPrecisionIndicatorContainer  # noqa
+from .datautils import get_loaders  # noqa
+from .loss_indicator import LossIndicator  # noqa
 
 all = [
-    'get_loaders',
+    "get_loaders",
+    "Indicator",
+    "MixPrecisionIndicatorContainer",
+    "LossIndicator",
 ]
