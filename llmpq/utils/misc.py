@@ -1,7 +1,15 @@
 import os
 import pickle
 from typing import Any
+import numpy as np
+import torch
+import random
 
+def set_seed(seed):
+    # set seed 
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    random.seed(seed)
 
 def save_with_pickle(
     result: Any, file_name: str = None, folder_path: str = None  # noqa
