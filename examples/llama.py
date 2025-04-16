@@ -1,6 +1,7 @@
 # pip install -v gptqmodel --no-build-isolation
 # pip install bitsandbytes
 import os
+
 from llmpq.profiler import profile_model
 
 PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
@@ -10,23 +11,24 @@ WARMUP = 5
 
 os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
 if __name__ == "__main__":
+    # only profile 2 layers for quant and profiling.
     model_id = "meta-llama/Llama-3.2-1B-Instruct"
     model_shard_name = "Llama_3.2_1B_Instruct_sharded"
     batch_size = 8
-    prompt_length = 128 
+    prompt_length = 128
     output_tokens = 100
 
     consider_inputs = {
-        'batch_size': 8,
-        'prompt_len': 128,
-        'output_tokens': 100,
+        "batch_size": 8,
+        "prompt_len": 128,
+        "output_tokens": 100,
     }
     # consider_bitwidth = [4, 8, 16]
     consider_bitwidth = {
-        'noq': [16], # no quant
-        'gptq': [4, 8],
-        # 'bitsandbytes': [4, 8],
-        # "awq": [4]  # only support 4
+        # 'noq': [16], # no quant
+        "gptq": [4, 8],  # weight only
+        # "awq": [4],  # weight only
+        # 'bitsandbytes': [8], # w8a8
     }
 
     output_files = profile_model(
@@ -39,8 +41,3 @@ if __name__ == "__main__":
         PROFILER_RAW=PROFILER_RAW,
         PROFILER_PARSED=PROFILER_PARSED,
     )
-
-    
-
-
-    

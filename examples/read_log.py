@@ -8,5 +8,7 @@ model_path_8 = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/Llama_3.2_1B_Inst
 container = MixPrecisionIndicatorContainer()
 container.add(4, LossIndicator(model_path))
 container.add(8, LossIndicator(model_path_8))
+# import pdb
+# pdb.set_trace()
 container.layer_wise()
 container.module_wise()

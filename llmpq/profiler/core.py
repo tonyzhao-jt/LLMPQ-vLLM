@@ -1,47 +1,53 @@
-
-import os
-import time
 import gzip
+import os
+import shutil
+import time
 from collections import defaultdict
 from typing import Dict, List
+
 import torch
 from vllm import LLM, SamplingParams
 
 from llmpq.dataset import DummyDataset
 from llmpq.profiler import shard_model
+from llmpq.utils import get_device_name_by_torch  # noqa
 from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
-import shutil
+
 
 def profile_model(
-        model_id: str, 
-        model_shard_name: str, 
-        inputs: Dict[str, int],
-        consider_bitwidth: Dict[str, List[int]],
-        tp_size: int = 1, # tp = 2 will hang the process.
-        warmup: int = 5,
-        repeat: int = 10,
-        PROFILER_RAW: str = "tmp/vllm_profile", # noqa
-        PROFILER_PARSED: str = "tmp/vllm_profile_parsed", # noqa
-    ) -> Dict[str, Dict[str, float]]:
+    model_id: str,
+    model_shard_name: str,
+    inputs: Dict[str, int],
+    consider_bitwidth: Dict[str, List[int]],
+    tp_size: int = 1,  # tp = 2 will hang the process.
+    warmup: int = 5,
+    repeat: int = 10,
+    PROFILER_RAW: str = "tmp/vllm_profile",  # noqa
+    PROFILER_PARSED: str = "tmp/vllm_profile_parsed",  # noqa
+) -> Dict[str, Dict[str, float]]:
     # profile the model with given configs.
 
-    batch_size, prompt_length, output_tokens = inputs['batch_size'], inputs['prompt_len'], inputs['output_tokens']
-    prompts = DummyDataset(batch_size=batch_size, prompt_len=prompt_length).gen_prompts()
+    batch_size, prompt_length, output_tokens = (
+        inputs["batch_size"],
+        inputs["prompt_len"],
+        inputs["output_tokens"],
+    )
+    prompts = DummyDataset(
+        batch_size=batch_size, prompt_len=prompt_length
+    ).gen_prompts()
     # Validate this model still works
-    save_path = f"tmp/llm_pq/{model_shard_name}"
+    save_path = f"tmp/llm_pq/{get_device_name_by_torch()}/{model_shard_name}"
     # make save path abs path
     save_path = os.path.abspath(save_path)
 
-    shard_model(model_id, save_path, layer_num = 2) 
+    shard_model(model_id, save_path, layer_num=2)
 
     method_bitwidth_model_path = defaultdict(dict)
     for method, bits in consider_bitwidth.items():
-        if method == 'noq':
+        if method == "noq":
             continue
         for _bits in bits:
-            quant_path = (
-                f"tmp/llm_pq/{model_shard_name}-{method}-{_bits}"  # noqa
-            )
+            quant_path = f"tmp/llm_pq/{model_shard_name}-{method}-{_bits}"  # noqa
             abs_path = os.path.abspath(quant_path)
             # check if has the file
             if not os.path.exists(abs_path):
@@ -50,9 +56,10 @@ def profile_model(
                 print(f"Found {abs_path}, skip quantization")
             method_bitwidth_model_path[method][_bits] = abs_path
 
-    # setup tkn gen num 
+    # setup tkn gen num
     sampling_params = SamplingParams(
-        temperature=0.6, top_p=0.9,
+        temperature=0.6,
+        top_p=0.9,
         ignore_eos=True,
         max_tokens=output_tokens,
     )
@@ -73,9 +80,9 @@ def profile_model(
                     # now not support 3 bit
                     llm = LLM(
                         model=model_path,
-                        tensor_parallel_size=2, 
+                        tensor_parallel_size=2,
                         dtype=torch.half,  # noqa
-                        quantization='gptq',
+                        quantization="gptq",
                     )  # noqa
                 else:
                     llm = LLM(
@@ -94,7 +101,9 @@ def profile_model(
                 )  # noqa
             elif qmethod == "awq":
                 llm = LLM(
-                    model=model_path, tensor_parallel_size=tp_size, quantization="AWQ"  # noqa
+                    model=model_path,
+                    tensor_parallel_size=tp_size,
+                    quantization="AWQ",  # noqa
                 )  # noqa
             else:
                 raise ValueError(
@@ -127,12 +136,21 @@ def profile_model(
                         os.path.join(PROFILER_RAW, file),
                         os.path.join(
                             PROFILER_PARSED,
-                            new_file_name, 
+                            new_file_name,
                         ),  # noqa
                     )
                     # unzip it (.gz format)
-                    with gzip.open(os.path.join(PROFILER_PARSED, new_file_name), 'rb') as f_in: # noqa
-                        with open(os.path.join(PROFILER_PARSED, new_file_name[:-3]), 'wb') as f_out: # noqa
+                    with gzip.open(
+                        os.path.join(PROFILER_PARSED, new_file_name), "rb"
+                    ) as f_in:  # noqa
+                        with open(
+                            os.path.join(PROFILER_PARSED, new_file_name[:-3]),
+                            "wb",  # noqa
+                        ) as f_out:  # noqa
                             shutil.copyfileobj(f_in, f_out)
-                            output_files.append(os.path.join(PROFILER_PARSED, new_file_name[:-3]))
+                            output_files.append(
+                                os.path.join(
+                                    PROFILER_PARSED, new_file_name[:-3]
+                                )  # noqa
+                            )
     return output_files

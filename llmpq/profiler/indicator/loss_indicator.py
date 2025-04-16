@@ -12,6 +12,7 @@ class LossIndicator(Indicator):
         self.model_path: str = model_path
         self.df: pd.DataFrame = None
         self.group_df: pd.DataFrame = None
+        self.parse()
 
     def parse(self) -> None:
         """Parse the quant_log.csv file and extract relevant data."""
@@ -24,13 +25,13 @@ class LossIndicator(Indicator):
         #    layer            module      loss  damp   time
         # 0      0  self_attn.k_proj   1.13409  0.01  1.022
         self.group_df = self.df[["layer", "module", "loss"]]
+        # rename loss as ind
+        self.group_df = self.group_df.rename(columns={"loss": "ind"})
 
     def layer_wise(self) -> Dict[int, float]:
         """Calculate the total loss per layer."""
-        self.parse()
-        return self.group_df.groupby("layer")["loss"].sum().to_dict()
+        return self.group_df.groupby("layer")["ind"].sum().to_dict()
 
     def module_wise(self) -> Dict[str, float]:
         """Calculate the total loss per module."""
-        self.parse()
-        return self.group_df.groupby("module")["loss"].sum().to_dict()
+        return self.group_df.groupby("module")["ind"].sum().to_dict()
