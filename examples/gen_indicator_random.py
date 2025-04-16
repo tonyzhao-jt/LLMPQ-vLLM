@@ -11,4 +11,7 @@ container.add(8, RandomIndicator(model_id, bit=8))
 # import pdb
 # pdb.set_trace()
 container.layer_wise()
-container.module_wise()
+# container.module_wise()
+
+container.store("random_ind.json")
+n_container = MixPrecisionIndicatorContainer.load("random_ind.json")
