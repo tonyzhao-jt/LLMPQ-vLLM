@@ -17,8 +17,7 @@ def init_cost_model(
     # init the cost model with configs
     h1, h2 = get_h1_h2_from_config(config)
     num_hidden_layers = config.num_hidden_layers
-    model_mem_estimator = create_mem_estimator(b, s, n, config)
-    print(h1, h2)
+    model_mem_estimator = create_mem_estimator(h1, h2, gb_size, prompt_len, output_token_num, config)
 
     # we assume each pod posses homogenous devices
     assert len(device_names) > 0, "device_names cannot be empty"

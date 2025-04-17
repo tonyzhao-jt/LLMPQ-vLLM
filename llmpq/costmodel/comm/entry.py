@@ -4,10 +4,13 @@ import pickle
 
 import llm_pq
 import torch.distributed as dist
-from llm_pq.p2p import new_nccl_group
 from llm_pq.profiler import profile_comm
 
-from llmpq.costmodel.comm.utils import init_env, init_env_gloo
+from llmpq.costmodel.comm.utils import (
+    init_env, init_env_gloo,
+    new_nccl_group
+)
+
 
 
 def test_comm_speed():
