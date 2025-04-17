@@ -24,7 +24,8 @@ sampling_params = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=100)
 # 用优化器解，解完后，得到计划直接用 vllm 跑 (核心是看怎么 PP 了，quant 这边直接 load 就行了)
 # 这还涉及到 chunked prefill 啥的, 从效果上也是堆叠到上面
 # PD 分离有点 contradict， KD 分离 本身增加了memory 使用，但 quant 一般永在 memory scarse 的情况下
-llm = LLM(model="meta-llama/Llama-3.2-1B", cpu_offload_gb=10, load_format='dummy') # try cpu offload
+# llm = LLM(model="meta-llama/Llama-3.2-1B", load_format='dummy') # try cpu offload
+llm = LLM(model="RedHatAI/Llama-3.2-1B-Instruct-quantized.w8a8", load_format="dummy")
 # 然后再用 vllm 直接跑就行了。。
 # indicator 的脚本还是可以用之前的。
 

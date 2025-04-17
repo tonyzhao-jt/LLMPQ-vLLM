@@ -58,13 +58,14 @@ def profile_model(
 
     # setup tkn gen num
     sampling_params = SamplingParams(
-        temperature=0.6,
-        top_p=0.9,
+        temperature=0,
+        top_p=1,
         ignore_eos=True,
         max_tokens=output_tokens,
     )
 
     output_files = []
+    gpu_memory_utilization = 0.5
 
     for qmethod, bitwidth_model_path in method_bitwidth_model_path.items():
         for bit, model_path in bitwidth_model_path.items():
@@ -74,6 +75,7 @@ def profile_model(
                     model=model_path,
                     tensor_parallel_size=tp_size,
                     dtype=torch.half,  # noqa
+                    gpu_memory_utilization=gpu_memory_utilization,
                 )  # noqa
             elif qmethod == "gptq":
                 if bit == 3:
@@ -83,12 +85,14 @@ def profile_model(
                         tensor_parallel_size=2,
                         dtype=torch.half,  # noqa
                         quantization="gptq",
+                        gpu_memory_utilization=gpu_memory_utilization,
                     )  # noqa
                 else:
                     llm = LLM(
                         model=model_path,
                         tensor_parallel_size=tp_size,
                         dtype=torch.half,  # noqa
+                        gpu_memory_utilization=gpu_memory_utilization,
                     )  # noqa
             elif qmethod == "bitsandbytes":
                 llm = LLM(
@@ -98,12 +102,14 @@ def profile_model(
                     trust_remote_code=True,
                     quantization="bitsandbytes",
                     load_format="bitsandbytes",
+                    gpu_memory_utilization=gpu_memory_utilization,
                 )  # noqa
             elif qmethod == "awq":
                 llm = LLM(
                     model=model_path,
                     tensor_parallel_size=tp_size,
                     quantization="AWQ",  # noqa
+                    gpu_memory_utilization=gpu_memory_utilization,
                 )  # noqa
             else:
                 raise ValueError(
