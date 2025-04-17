@@ -17,4 +17,4 @@ llmpq-algo --model_id "meta-llama/Llama-3.2-1B-Instruct" \
  --ilp_seed $seed \
  --fit --s $prompt_length --n $output_token \
  --theta $theta --global_bz $gb_size --ilp_time_limit 60 --group_size $GROUPSIZE --fit --debug \
- --fname-suffix "group_$GROUP_SIZE" 2>&1 | tee "${ABLATION_FOLDER}${model_ref_id}_GROUPSIZE${GROUPSIZE}"
+ --fname-suffix "group_$GROUP_SIZE" 2>&1 | tee "${ABLATION_FOLDER}${model_ref_id}_GROUPSIZE${GROUPSIZE}.log"

@@ -1,6 +1,0 @@
-INFO 04-17 16:14:10 [__init__.py:239] Automatically detected platform cuda.
-[34mINFO 2025-04-17 16:14:11,445 algo_utils.py:174] ROOT_DIR is set to /opt/tiger/Saber/llm_pq_v2/examples/scripts/tmp[0m
-device_names ['Tesla_V100-SXM2-32GB']
-device_numbers [1]
-device_info Tesla_V100-SXM2-32GB_1
-[31mERROR 2025-04-17 16:14:12,246 logger.py:70] omega file /scripts/accuracyPPL/generated_ind/gen_opt_13b_ind.pkl does not exist[0m
