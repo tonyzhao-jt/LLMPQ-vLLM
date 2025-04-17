@@ -45,3 +45,11 @@ def get_device_name_by_torch():
     # replace the " " and other
     gpu_name = gpu_name.replace(" ", "_")
     return gpu_name
+
+
+def parse_model_id(model_id: str):
+    # remove "/" and other special characters
+    model_id = model_id.replace("/", "_")
+    model_id = model_id.replace("-", "_")
+    model_id = model_id.replace(' ', '_')
+    return model_id

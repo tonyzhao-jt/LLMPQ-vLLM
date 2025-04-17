@@ -1,12 +1,13 @@
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from logging import getLogger
-
-from .optimizer import is_partition_config_valid
+from typing import List, Any 
 
 logger = getLogger(__name__)
 
+def _default_bits_factory() -> List[Any]:
+    return [3, 4, '8:tc-li', 16]
 
 @dataclass
 class PQConfig:
@@ -16,6 +17,20 @@ class PQConfig:
     qmethod: str = ("",)  # e.g. gptq
     adaptive_qbits: str = ""  # e.g. "4,4,8,8,8"
     num_layers: int = 16
+    # algo related
+    gamma: float = 0.5 # expected generated tokens
+    theta: float = 0.1 # control the concern for accuracy
+    MEM_UNIT: str = 'MB'
+    AVAILABLE_BITS: List[Any] = field(
+        default_factory=_default_bits_factory
+    )
+    AVAILABLE_BITS_WO_INFO: List[Any] = field(
+        default_factory=_default_bits_factory
+    )
+    CUDA_CONTEXT_MEM: float = 430 + 1500 # 430MB cuda context allocation + 1.5 G Torch Temp Allocation
+                              # conforms to the huggingface's script, which reduce by 2GB
+    RATIO_AVOID_OOM: float = 0.95 # 95% of the memory is used to avoid OOM
+    SLO_RATE: float = 1.5 # times of fp16 inference time to be SLO.
 
     # dump and load function (in json)
     def dump(self):
@@ -29,6 +44,7 @@ class PQConfig:
         """
         dump to the execution scripts
         """
+        from llmpq.utils import is_partition_config_valid
         assert is_partition_config_valid(
             (self.partition_config, self.pipeline_parallel_size),
             self.num_layers,  # noqa
@@ -83,3 +99,15 @@ vllm serve <your_quant_path> \\
         self.partition_config = config["partition_config"]
         self.pipeline_parallel_size = config["pipeline_parallel_size"]
         self.adaptive_qbits = config["adaptive_qbits"]
+
+
+@dataclass
+class GenerationConfig:
+    global_bz: int
+    micro_bz: int
+    # prompt length, generated sequence length
+    s: int
+    n: int 
+
+# init one 
+gen_config = GenerationConfig(global_bz=16, micro_bz=4, s=512, n=100)

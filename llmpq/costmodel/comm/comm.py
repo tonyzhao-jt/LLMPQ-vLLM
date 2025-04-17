@@ -3,16 +3,15 @@
 """
 import os
 import pickle
-
 import numpy as np
-
 
 class CommCostModel:
     def __init__(
-        self, comm_cost_model_folder: str, single_device: bool = False
+        self, comm_cost_model_folder: str, single_card: bool = False
     ) -> None:
         self.cost_model = {}
-        if not single_device:
+        self.single_card = single_card
+        if not single_card:
             assert os.path.exists(
                 comm_cost_model_folder
             ), f"Folder {comm_cost_model_folder} does not exist."
@@ -35,6 +34,8 @@ class CommCostModel:
         print(self.cost_model.keys())
 
     def predict_comm_time(self, start_rank, end_rank, data_size):
+        if self.single_card:
+            return 0 # single card, no inter communication, very small
         if start_rank == end_rank:
             return 0
         if start_rank in self.rank_map:

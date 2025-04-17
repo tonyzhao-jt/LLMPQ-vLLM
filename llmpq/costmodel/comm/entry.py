@@ -2,16 +2,14 @@ import argparse
 import os
 import pickle
 
-import llm_pq
+import llmpq
 import torch.distributed as dist
-from llm_pq.profiler import profile_comm
+from llmpq.costmodel.comm.profiler import profile_comm
 
 from llmpq.costmodel.comm.utils import (
     init_env, init_env_gloo,
     new_nccl_group
 )
-
-
 
 def test_comm_speed():
     data_size_buffer, time_buffer = profile_comm.generate_cost_model_dataset(
@@ -42,8 +40,8 @@ if __name__ == "__main__":
         nccl_group = new_nccl_group()
         rank = dist.get_rank()
         local_rank = os.environ["LOCAL_RANK"]
-        llm_pq._globals.__PIPELINE__MODEL__PARALLEL__GROUP__ = nccl_group
-        llm_pq._globals.__DEVICE__INDEX__ = local_rank
+        llmpq._globals.__PIPELINE__MODEL__PARALLEL__GROUP__ = nccl_group
+        llmpq._globals.__DEVICE__INDEX__ = local_rank
     else:
         init_env_gloo()
         rank = dist.get_rank()
@@ -55,6 +53,8 @@ if __name__ == "__main__":
             os.mkdir("comm_cost_model")
     dist.barrier()
     dataset = test_comm_speed()
+
+    # rank 0 gather the dataset and store it by rank
     cost_model = profile_comm.fit_cost_model(dataset)
 
     # save cost_model into folder

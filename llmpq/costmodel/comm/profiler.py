@@ -4,7 +4,8 @@ import torch.distributed as dist
 from typing import Dict, List, Tuple, Any
 from torch import Tensor
 import numpy as np
-from ..utils import get_size_cpu, get_size_cuda
+from llmpq.utils import get_size_cpu, get_size_cuda
+from llmpq.utils import to_device_recursive
 import llmpq
 def get_factors(x):
     factors = []
@@ -112,7 +113,6 @@ def fit_cost_model(dataset: Tuple[Dict[str, List[Tensor]], Dict[str, List[float]
     cost_model: Dict[str, np.ndarray] = {}
     data_size_buffer, time_buffer = dataset
 
-    from qllm.utils import to_device_recursive
     data_size_buffer = to_device_recursive(data_size_buffer, 'cpu')
     time_buffer = to_device_recursive(time_buffer, 'cpu')
 

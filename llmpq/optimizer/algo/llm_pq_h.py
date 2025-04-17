@@ -21,7 +21,7 @@ from llmpq.costmodel.mem import (check_memory_budget, estimate_all_layer_mem,
 from llmpq.optimizer.algo.algo_utils import (
     NOT_AVAILABLE, create_ilp_solver, estimate_min_max_mem, get_combinations,
     get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    ilp_env, interpret_ilp_result_i_j_b)
+    ilp_env, interpret_ilp_result_i_j_b, set_root_folder)
 from llmpq.optimizer.algo.argparser import common_argparser
 from llmpq.profiler.indicator.v1 import assign_omega_constant  # noqa
 from llmpq.profiler.indicator.v1 import assign_omega_uniform
@@ -218,8 +218,8 @@ def prepare_for_ilp(
         l_prefill[:, 0, :] += prefill_prepost_cost
         l_decode[:, 0, :] += decode_prepost_cost
     # omega
-    # omega = assign_omega_constant(group_L, BITs)
-    omega = assign_omega_uniform(group_L, BITs)
+    omega = assign_omega_constant(group_L, BITs)
+    # omega = assign_omega_uniform(group_L, BITs)
     if omega_file is not None:
         # open and load with pickle
         with open(omega_file, "rb") as f:
@@ -260,10 +260,6 @@ def prepare_for_ilp(
         omega,
         (comm_prefill, comm_decode),
     )
-
-
-# objective
-# object 1
 
 
 def get_device_e2e_lat(
@@ -957,8 +953,7 @@ available_bits = None
 config = None
 theta = None
 mu_n = None
-ROOT_DIR = os.environ.get("ROOT_DIR", None)
-assert ROOT_DIR is not None, "ROOT_DIR is not set"
+ROOT_DIR = set_root_folder()
 cost_model_store_path = f"{ROOT_DIR}/scripts/cost_model_store"
 comm_cost_model_dir = f"{ROOT_DIR}/scripts/comm_cost_model"
 omega_file = None
@@ -1035,14 +1030,14 @@ def main(args):
     if args.debug:
         model_mem_estimator, comm_cost_model, lat_cost_model, T = init_cost_model(
             config,
-            device_names,
-            device_numbers,
-            cost_model_store_path,
             global_bz,
             micro_bz,
             s,
             n,
-            comm_cost_model_folder=comm_cost_model_dir,
+            device_names,
+            device_numbers,
+            comm_cost_model_dir,
+            cost_model_store_path,
         )
         args.init_pack = (model_mem_estimator, comm_cost_model, lat_cost_model, T)
         lat_cost_model.update_profiled_result(args.lat_profile_dir)

@@ -9,14 +9,16 @@ from llmpq.costmodel.mem import (estimate_all_layer_mem,
                                  get_mem_with_layer_bit_pair)
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.v1.device import get_single_device_mem_constraints
+from llmpq.logger import init_logger
+
+logger = init_logger(__name__)
 
 SIGNAL_BASE = 1234
 NOT_AVAILABLE = SIGNAL_BASE + 1
 FP16_ENOUGH = SIGNAL_BASE + 2
 
-
-def get_final_strat_file_name(model_name, model_size, device_info):
-    file_name = f"sols_" + f"{model_name}_{model_size}" + "_" + device_info + ".pkl"
+def get_final_strat_file_name(model_id: str, device_info):
+    file_name = f"sols_" + f"{model_id}" + "_" + device_info + ".pkl"
     return file_name
 
 
@@ -159,3 +161,16 @@ def force_zero(lat, z, prob):
         force_zero_2d(lat, z, prob)
     elif len(lat_shape) == 3:
         force_zero_3d(lat, z, prob)
+
+
+def set_root_folder() -> setattr:
+    ROOT_DIR = os.environ.get("ROOT_DIR", None)
+    # set to the tmp folder under cwd
+    if ROOT_DIR is None:
+        ROOT_DIR = os.path.join(os.getcwd(), "tmp")
+        os.makedirs(ROOT_DIR, exist_ok=True)
+        os.environ["ROOT_DIR"] = ROOT_DIR
+        logger.info(f"ROOT_DIR is set to {ROOT_DIR}")
+    # check
+    assert ROOT_DIR is not None, "ROOT_DIR is not set"
+    return ROOT_DIR

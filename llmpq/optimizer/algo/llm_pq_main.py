@@ -18,7 +18,7 @@ from llmpq.costmodel.lat import get_latency_with_layer_device_bit_pair
 from llmpq.optimizer.algo.algo_utils import (
     NOT_AVAILABLE, create_ilp_solver, force_zero,
     get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    interpret_ilp_result_i_j_b)
+    interpret_ilp_result_i_j_b, set_root_folder)
 from llmpq.profiler.indicator.v1 import assign_omega_constant  # noqa
 from llmpq.profiler.indicator.v1 import assign_omega_uniform
 from llmpq.utils.bits_pair import get_available_bits_pair
@@ -420,8 +420,7 @@ available_bits = None
 config = None
 theta = None
 mu_n = None
-ROOT_DIR = os.environ.get("ROOT_DIR", None)
-assert ROOT_DIR is not None, "ROOT_DIR is not set"
+ROOT_DIR = set_root_folder()
 cost_model_store_path = f"{ROOT_DIR}/scripts/cost_model_store"
 comm_cost_model_dir = f"{ROOT_DIR}/scripts/comm_cost_model"
 lat_profile_result_path = f"{ROOT_DIR}/scripts/lat_profiled_result"
@@ -494,16 +493,15 @@ def main(args):
     if args.init_pack is None:
         model_mem_estimator, comm_cost_model, lat_cost_model, T = init_cost_model(
             config,
-            device_names,
-            device_numbers,
-            cost_model_store_path,
             global_bz,
             micro_bz,
             s,
             n,
-            comm_cost_model_folder=comm_cost_model_dir,
+            device_names,
+            device_numbers,
+            comm_cost_model_dir,
+            cost_model_store_path,
         )
-
         args.init_pack = (model_mem_estimator, comm_cost_model, lat_cost_model, T)
         lat_cost_model.update_profiled_result(args.lat_profile_dir)
         lat_cost_model.update_profiled_prepost_result(args.lat_prepost_profile_dir)

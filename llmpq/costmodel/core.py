@@ -1,18 +1,23 @@
-from typing import List
+from typing import List, Optional
 
 from transformers import PretrainedConfig
 
 from llmpq.costmodel.mem import create_mem_estimator
-from llmpq.costmodel.utils import get_h1_h2_from_config
+from llmpq.utils import get_h1_h2_from_config
+from llmpq.costmodel.comm import CommCostModel
+from llmpq.costmodel.lat import LatCostModel
 
 
 def init_cost_model(
     config: PretrainedConfig,
     gb_size: int,
+    micro_bz: int,
     prompt_len: int,
     output_token_num: int,
     device_names: List[str],
     device_cnts: List[int],
+    comm_cost_model_folder: Optional[str] = None,
+    cost_model_store_path: str = '/tmp/llmpq_costmodel'
 ):
     # init the cost model with configs
     h1, h2 = get_h1_h2_from_config(config)
@@ -29,9 +34,9 @@ def init_cost_model(
         comm_cost_model_folder=comm_cost_model_folder, single_card=single_card
     )
     lat_cost_model = LatCostModel(
-        device_names, lat_cost_model_folder=cost_model_store_path
+        device_names, cost_model_store_path=cost_model_store_path
     )
-    lat_cost_model.register_hyper_params(micro_b, s, n, h1, h2)
+    lat_cost_model.register_hyper_params(micro_bz, prompt_len, output_token_num, h1, h2)
     return model_mem_estimator, comm_cost_model, lat_cost_model, num_hidden_layers
 
 
@@ -40,4 +45,11 @@ if __name__ == "__main__":
 
     config = AutoConfig.from_pretrained("facebook/opt-125m")
     config = AutoConfig.from_pretrained("meta-llama/Llama-3.2-1B-Instruct")
-    init_cost_model(config)
+    init_cost_model(config,
+                    gb_size=8,
+                    micro_bz=1,
+                    prompt_len=1024,
+                    output_token_num=1024,
+                    device_names=["NVIDIA_A100"],
+                    device_cnts=[1]
+                    )

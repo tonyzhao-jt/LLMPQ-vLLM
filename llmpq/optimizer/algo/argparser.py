@@ -1,39 +1,52 @@
 import argparse
 import os
-
 import numpy as np
+from transformers import AutoConfig 
 
+from llmpq.config import PQConfig, gen_config
+from llmpq.optimizer.algo.algo_utils import set_root_folder
+from llmpq.utils.v1.device import get_device_info
+from llmpq.logger import assert_log, init_logger
+
+from llmpq.utils.misc import parse_model_id
+
+logger = init_logger(__name__)
+ROOT_DIR = set_root_folder() # act as work directory
+def verbose_device_info(device_names, device_numbers, device_info):
+    print(f"device_names {device_names}")
+    print(f"device_numbers {device_numbers}")
+    print(f"device_info {device_info}")
 
 def common_argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", type=str, default="opt")
-    parser.add_argument("--model_size", type=str, required=True)
+    parser.add_argument("--model_id", type=str, default="facebook/opt-125m")
     parser.add_argument("--device_names", nargs="+", type=str, required=True)
     parser.add_argument("--device_numbers", nargs="+", type=int, required=True)
     parser.add_argument(
         "--SLO-aware", action="store_true", help="add slo into constraints"
     )
     parser.add_argument("--omega_file", type=str, default=None)
+    # parser.add_argument("--omega-constant", action="store_true", help="use constant omega")
     parser.add_argument(
         "--use_profiler_prediction", action="store_true", help="use profiler prediction"
     )
     parser.add_argument(
         "--comm_cost_model_dir",
         type=str,
-        default=f"{ROOT_DIR}/scripts/profile/comm_cost_model/",
+        default=f"{ROOT_DIR}/profile/comm_cost_model/",
     )
     parser.add_argument(
         "--lat_profile_dir",
         type=str,
-        default=f"{ROOT_DIR}/scripts/profile/lat_profiled_result",
+        default=f"{ROOT_DIR}/profile/lat_profiled_result",
     )
     parser.add_argument(
         "--lat_prepost_profile_dir",
         type=str,
-        default=f"{ROOT_DIR}/scripts/profile/lat_prepost_profiled_result",
+        default=f"{ROOT_DIR}/profile/lat_prepost_profiled_result",
     )
     parser.add_argument(
-        "--store_folder", type=str, default=f"{ROOT_DIR}/scripts/part_strategy"
+        "--store_folder", type=str, default=f"{ROOT_DIR}/part_strategy"
     )
     # ilp control
     # different seed result in different performance
@@ -88,20 +101,20 @@ def common_argparser():
     args = parser.parse_args()
 
     # temporary memory control
-    _globals.TIME_MULT_TIMES = args.time_mult_times
+    PQConfig.TIME_MULT_TIMES = args.time_mult_times
 
     # modelname and size
-    model_name = args.model_name
-    model_size = args.model_size
-    config = create_model_config(model_name, model_size)
+    model_id = args.model_id 
+    config = AutoConfig.from_pretrained(model_id)
+    args.model_id = parse_model_id(args.model_id)
     args.config = config
 
     # set configs
     gen_config.global_bz = args.global_bz
     gen_config.s = args.s
     gen_config.n = args.n
-    _globals.gamma = args.gamma
-    _globals.theta = args.theta
+    PQConfig.gamma = args.gamma
+    PQConfig.theta = args.theta
 
     # checks
     device_names = (
@@ -120,20 +133,13 @@ def common_argparser():
 
     # check omega file valid if exits
     if args.omega_file is not None:
-        # assert os.path.exists(args.omega_file), f"omega file {args.omega_file} does not exist"
-        # assert model_name in args.omega_file, f"omega file {args.omega_file} does not contain model name {model_name}"
-        # assert model_size in args.omega_file, f"omega file {args.omega_file} does not contain model size {model_size}"
         assert_log(
             os.path.exists(args.omega_file),
             f"omega file {args.omega_file} does not exist",
         )
         assert_log(
-            model_name in args.omega_file,
-            f"omega file {args.omega_file} does not contain model name {model_name}",
-        )
-        assert_log(
-            model_size in args.omega_file,
-            f"omega file {args.omega_file} does not contain model size {model_size}",
+            model_id in args.omega_file,
+            f"omega file {args.omega_file} does not contain model_id {model_id}",
         )
 
     return args

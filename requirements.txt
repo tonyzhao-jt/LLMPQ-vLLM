@@ -1,3 +1,9 @@
 vllm
 pre-commit
 datasets
+scikit-learn
+statsmodels
+joblib
+pulp
+gurobipy
+colorlog

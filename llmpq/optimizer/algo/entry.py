@@ -14,7 +14,8 @@ from llmpq.logger import assert_log, init_logger
 from llmpq.optimizer.algo.adabits import main as adaptive_bits_main
 # arg parser
 from llmpq.optimizer.algo.algo_utils import (NOT_AVAILABLE,
-                                             get_final_strat_file_name)
+                                             get_final_strat_file_name,
+                                             set_root_folder)
 from llmpq.optimizer.algo.argparser import common_argparser
 from llmpq.optimizer.algo.interpreter import \
     convert_to_llm_pq_result2partitions
@@ -25,7 +26,6 @@ from llmpq.utils.save import save_with_pickle
 from llmpq.utils.v1.device import get_device_info
 
 # from llmpq.optimizer.algo.uniform import main as uniform_main # 这个现在可能不用了, 直接跑vllm
-
 
 
 logger = init_logger(__name__)
@@ -54,18 +54,10 @@ def algo_main():
         "Please install gurobi and put the license file under /opt/gurobi/",
     )
 
-    ROOT_DIR = os.environ.get("ROOT_DIR", None)
-    # if the ROOT_DIR is not set, then use the current directory
-    if ROOT_DIR is None:
-        ROOT_DIR = os.getcwd()
-        # set to ROOT_DIR
-        os.environ["ROOT_DIR"] = ROOT_DIR
-
     args = common_argparser()
     # device info
     # modelname and size
-    model_name = args.model_name
-    model_size = args.model_size
+    model_id = args.model_id
     device_names = (
         args.device_names
     )  # ['Tesla_V100-SXM2-32GB', 'NVIDIA_A100-SXM4-40GB']
@@ -78,7 +70,6 @@ def algo_main():
     micro_bz = gen_config.micro_bz
     s = gen_config.s
     n = gen_config.n
-    model_size = args.model_size  # '66b'
     device_names = (
         args.device_names
     )  # ['Tesla_V100-SXM2-32GB', 'NVIDIA_A100-SXM4-40GB']
@@ -88,7 +79,10 @@ def algo_main():
     # generation configs
     config = args.config
     comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}"
-    cost_model_store_path = None
+    root_folder = set_root_folder()
+    cost_model_store_path = os.path.join(
+        root_folder, "cost_model", device_info
+    )
     (
         model_mem_estimator,
         comm_cost_model,
@@ -96,15 +90,17 @@ def algo_main():
         T,
     ) = init_cost_model(
         config,
-        device_names,
-        device_numbers,
-        cost_model_store_path,
         global_bz,
         micro_bz,
         s,
         n,
-        comm_cost_model_folder=comm_cost_model_dir,
+        device_names,
+        device_numbers,
+        comm_cost_model_dir,
+        cost_model_store_path,
     )
+
+
 
     args.init_pack = (model_mem_estimator, comm_cost_model, lat_cost_model, T)
     lat_cost_model.update_profiled_result(args.lat_profile_dir)
@@ -154,8 +150,8 @@ def algo_main():
     sols["llm_pq"] = sol_llm_pq
     sols["pipeedge"] = sol_pipeedge
     # sols['pipeedge_adaptive'] = sol_pipeedge_adaptive
-    for bit, sol in uniform_sols.items():
-        sols[f"uniform"] = sol
+    # for bit, sol in uniform_sols.items():
+    #     sols[f"uniform"] = sol
     for sol_name, sol in sols.items():
         logger.info(f"start to run {sol_name}")
         if sol["plan"] == NOT_AVAILABLE:
@@ -196,11 +192,10 @@ def algo_main():
     sols["n"] = n
     sols["gloabl_bz"] = global_bz
     sols["prompt_length"] = s
-    sols["model_name"] = model_name
-    sols["model_size"] = model_size
+    sols["model_id"] = model_id
     # store the solution
-    # with device_names and model_name and model_size
-    file_name = get_final_strat_file_name(model_name, model_size, device_info)
+    # with device_names and model id
+    file_name = get_final_strat_file_name(model_id, device_info)
     if args.fname_suffix is not None:
         # insert before .pkl
         file_name = file_name[:-4] + args.fname_suffix + ".pkl"

@@ -6,7 +6,7 @@ import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from llmpq import PQConfig
+from llmpq.config import PQConfig
 
 QUANTIZATION_REGISTRY: Dict[str, Type["BaseQuantizer"]] = {}
 

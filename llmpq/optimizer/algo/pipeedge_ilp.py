@@ -8,7 +8,7 @@ from llmpq.config import PQConfig, gen_config
 from llmpq.costmodel.lat import get_latency_with_layer_device_bit_pair
 from llmpq.optimizer.algo.algo_utils import (
     NOT_AVAILABLE, create_ilp_solver, get_device_topo_available_mem_with_order,
-    get_M_with_bitwidth_pair, interpret_ilp_result_i_j_b)
+    get_M_with_bitwidth_pair, interpret_ilp_result_i_j_b, set_root_folder)
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
 from llmpq.utils.v1.miscs import (decouple_result_group, get_default_decode_bz,
@@ -104,7 +104,7 @@ def prepare_for_ilp(num_hidden_layers, D, chosen_bit, cost_model_pack, bz_pack):
     )
 
     # latency
-    l = np.zeros((group_L, N, len(BITs)))
+    latency_matrix = np.zeros((group_L, N, len(BITs)))
     lat_device_bits_matrix = get_latency_with_layer_device_bit_pair(
         D,
         BITs,
@@ -115,12 +115,12 @@ def prepare_for_ilp(num_hidden_layers, D, chosen_bit, cost_model_pack, bz_pack):
         use_profiler_prediction=use_profiler_prediction,
     )
     for i in range(group_L):
-        l[i, :, :] = lat_device_bits_matrix * group_size
+        latency_matrix[i, :, :] = lat_device_bits_matrix * group_size
 
     # comm
     comm_decode = (model_mem_estimator.h1 * bz_decode_max * 1) * 2 / 1024 / 1024
     comm = get_comm(D, comm_cost_model, comm_decode) * comm_multiplier
-    return group_L, N, BITs, M_d, M, l, comm
+    return group_L, N, BITs, M_d, M, latency_matrix, comm
 
 
 """
@@ -137,8 +137,7 @@ available_bits = None
 config = None
 theta = None
 mu_n = None
-ROOT_DIR = os.environ.get("ROOT_DIR", None)
-assert ROOT_DIR is not None, "ROOT_DIR is not set"
+ROOT_DIR = set_root_folder()
 cost_model_store_path = f"{ROOT_DIR}/scripts/cost_model_store"
 comm_cost_model_dir = f"{ROOT_DIR}/scripts/comm_cost_model"
 all_available_pairs = []
@@ -207,7 +206,7 @@ def main(args):
     )  # use regression model to predict or load predictor
     # target model configuration
     device_info = get_device_info(device_names, device_numbers)
-    comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}"
+    comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}" # noqa
     cost_model_store_path = None  # initialize the cost model
 
     model_mem_estimator, comm_cost_model, lat_cost_model, T = args.init_pack

@@ -12,8 +12,8 @@ from llmpq.costmodel.mem import estimate_all_layer_mem
 from llmpq.optimizer.algo.algo_utils import (
     NOT_AVAILABLE, create_ilp_solver, estimate_min_max_mem,
     get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    interpret_ilp_result_i_j_b)
-from llmpq.profiler.indicator.v1 import assign_omega_uniform
+    interpret_ilp_result_i_j_b, set_root_folder)
+from llmpq.profiler.indicator.v1 import assign_omega_uniform, assign_omega_constant
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.bits_pair import get_available_bits_pair
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
@@ -135,7 +135,8 @@ def prepare_for_ilp(num_hidden_layers, D, available_bits, bz_pack, model_mem_est
     )
 
     # omega
-    omega = assign_omega_uniform(group_L, BITs)
+    # omega = assign_omega_uniform(group_L, BITs)
+    omega = assign_omega_constant(group_L, BITs)
     if omega_file is not None:
         # open and load with pickle
         with open(omega_file, "rb") as f:
@@ -189,8 +190,7 @@ available_bits = None
 config = None
 theta = None
 mu_n = None
-ROOT_DIR = os.environ.get("ROOT_DIR", "/tmp/llmpq/algo")
-assert ROOT_DIR is not None, "ROOT_DIR is not set"
+ROOT_DIR = set_root_folder()
 cost_model_store_path = f"{ROOT_DIR}/scripts/cost_model_store"
 comm_cost_model_dir = f"{ROOT_DIR}/scripts/comm_cost_model"
 omega_file = None

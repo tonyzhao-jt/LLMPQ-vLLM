@@ -20,6 +20,11 @@ setup(
     version="0.1",
     packages=find_packages(),
     install_requires=get_requirements(),
+    entry_points={
+        'console_scripts': [
+            'llmpq-algo = llmpq.optimizer.algo.entry:algo_main',
+        ]
+    },
     author="Tony",
     author_email="juntaozh@connect.hku.hk",
     description="Serving LLM on Heterogeneous Clusters with Phase-Aware Partition and Adaptive Quantization",  # noqa
