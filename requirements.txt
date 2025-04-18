@@ -9,3 +9,4 @@ gurobipy
 colorlog
 llmcompressor
 hf_xet
+gptqmodel[vllm]

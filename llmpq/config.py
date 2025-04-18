@@ -17,7 +17,12 @@ class PQConfig:
     qmethod: str = ("",)  # e.g. gptq
     adaptive_qbits: str = ""  # e.g. "4,4,8,8,8"
     num_layers: int = 16
-    # algo related
+    # mixed-precision setup
+    bit_4_q_method: str = 'gptq'
+    bit_8_q_method: str = 'smoothquant'
+    # working dir
+    work_dir: str = '/tmp/llmpq/work_dir'
+    # v1: algo related
     gamma: float = 0.5 # expected generated tokens
     theta: float = 0.1 # control the concern for accuracy
     MEM_UNIT: str = 'MB'
@@ -31,7 +36,7 @@ class PQConfig:
                               # conforms to the huggingface's script, which reduce by 2GB
     RATIO_AVOID_OOM: float = 0.95 # 95% of the memory is used to avoid OOM
     SLO_RATE: float = 1.5 # times of fp16 inference time to be SLO.
-
+    
     # dump and load function (in json)
     def dump(self):
         return {
