@@ -28,7 +28,7 @@ if __name__ == "__main__":
         # 'noq': [16], # no quant
         # "gptq": [4, 8],  # weight only
         # "awq": [4],  # weight only
-        'bitsandbytes': [8], # w8a8
+        'smoothquant': [8], # w8a8
     }
 
     output_files = profile_model(

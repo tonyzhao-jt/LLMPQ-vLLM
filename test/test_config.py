@@ -2,7 +2,7 @@
 # or take a config file (json file and do launch)
 import os
 
-from llmpq import PQConfig
+from llmpq.config import PQConfig
 from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model_adaptive
 
 if __name__ == "__main__":

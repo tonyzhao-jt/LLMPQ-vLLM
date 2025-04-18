@@ -1,6 +1,7 @@
 import re
+import os 
 from collections import defaultdict
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Type, Optional
 
 import torch
 from datasets import load_dataset
@@ -21,7 +22,7 @@ def register_quantization_method(name: str):
 
 class BaseQuantizer:
     @staticmethod
-    def quantize(model_id: str, quant_path: str, bits: int):
+    def quantize(model_id: str, quant_path: str, bits: int, **kwargs):
         raise NotImplementedError("Subclasses must implement this method")
 
 
@@ -29,7 +30,7 @@ class BaseQuantizer:
 @register_quantization_method("gptq")
 class GPTQQuantizer(BaseQuantizer):
     @staticmethod
-    def quantize(model_id: str, quant_path: str, bits: int):
+    def quantize(model_id: str, quant_path: str, bits: int, **kwargs):
         if bits not in [2, 3, 4, 8]:
             raise ValueError("`bits` must be either 2, 3, 4, or 8.")
 
@@ -52,7 +53,7 @@ class GPTQQuantizer(BaseQuantizer):
         )
 
     @staticmethod
-    def quantize_adaptive(model_id: str, quant_path: str, pq_config: PQConfig):
+    def quantize_adaptive(model_id: str, quant_path: str, pq_config: PQConfig, **kwargs):
         ada_bits = list(map(int, pq_config.adaptive_qbits.split(",")))
         ref_model = AutoModelForCausalLM.from_pretrained(
             model_id
@@ -158,7 +159,7 @@ class GPTQQuantizer(BaseQuantizer):
 @register_quantization_method("bitsandbytes")
 class BitsAndBytesQuantizer(BaseQuantizer):
     @staticmethod
-    def quantize(model_id: str, quant_path: str, bits: int):
+    def quantize(model_id: str, quant_path: str, bits: int, **kwargs):
         if bits not in [4, 8]:
             raise ValueError("`bits` must be either 4 or 8.")
 
@@ -197,7 +198,7 @@ class BitsAndBytesQuantizer(BaseQuantizer):
 @register_quantization_method("awq")
 class AWQQuantizer(BaseQuantizer):
     @staticmethod
-    def quantize(model_id: str, quant_path: str, bits: int):
+    def quantize(model_id: str, quant_path: str, bits: int, **kwargs):
         if bits not in [4]:
             raise ValueError("`bits` must be 4 for AWQ quantization.")
 
@@ -227,7 +228,71 @@ class AWQQuantizer(BaseQuantizer):
         )  # noqa
 
 
-def quantize_model(method: str, model_id: str, quant_path: str, bits: int = 4):
+
+# smoothquant
+@register_quantization_method("smoothquant")
+class SmoothQuantQuantizer(BaseQuantizer):
+    @staticmethod
+    def quantize(model_id: str, quant_path: str, bits: int, dataset_path: Optional[str] = None, **kwargs):
+        if bits not in [8]:
+            raise ValueError("`bits` must be 4 for AWQ quantization.")
+        
+        from datasets import load_dataset
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, device_map="auto", torch_dtype="auto",
+        )
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        NUM_CALIBRATION_SAMPLES = 512
+        MAX_SEQUENCE_LENGTH = 2048
+
+        # Load and preprocess the dataset
+        if dataset_path is not None and os.path.exists(dataset_path):
+            try:
+                ds = load_dataset(dataset_path, split="test_sft") 
+            except Exception as e:
+                print(f"dataset_path {dataset_path} not found, use default dataset")
+                ds = load_dataset("HuggingFaceH4/ultrachat_200k", split="test_sft")
+        else:
+            ds = load_dataset("HuggingFaceH4/ultrachat_200k", split="test_sft")
+        ds = ds.shuffle(seed=42).select(range(NUM_CALIBRATION_SAMPLES))
+
+        def preprocess(example):
+            return {"text": tokenizer.apply_chat_template(example["messages"], tokenize=False)}
+        ds = ds.map(preprocess)
+
+        def tokenize(sample):
+            return tokenizer(sample["text"], padding=False, max_length=MAX_SEQUENCE_LENGTH, truncation=True, add_special_tokens=False)
+        ds = ds.map(tokenize, remove_columns=ds.column_names)
+
+        from llmcompressor.transformers import oneshot
+        from llmcompressor.modifiers.quantization import GPTQModifier
+        from llmcompressor.modifiers.smoothquant import SmoothQuantModifier
+
+        # Configure the quantization algorithms
+        recipe = [
+            SmoothQuantModifier(smoothing_strength=0.8),
+            GPTQModifier(targets="Linear", scheme="W8A8", ignore=["lm_head"]),
+        ]
+
+        # Apply quantization
+        oneshot(
+            model=model_id,
+            dataset=ds,
+            recipe=recipe,
+            max_seq_length=MAX_SEQUENCE_LENGTH,
+            num_calibration_samples=NUM_CALIBRATION_SAMPLES,
+        )
+
+        # Save the compressed model
+        SAVE_DIR = quant_path
+        model.save_pretrained(SAVE_DIR, save_compressed=True)
+        tokenizer.save_pretrained(SAVE_DIR)
+
+        print(
+            f'Model quantized to {bits}-bit using smoothquant and saved at "{quant_path}".'  # noqa
+        )  # noqa
+
+def quantize_model(method: str, model_id: str, quant_path: str, bits: int = 4, dataset_path: Optional[str] = None, **kwargs):
     """
     Quantize a model using the specified method.
 
@@ -243,11 +308,12 @@ def quantize_model(method: str, model_id: str, quant_path: str, bits: int = 4):
         )
 
     quantizer_class = QUANTIZATION_REGISTRY[method]
-    quantizer_class.quantize(model_id, quant_path, bits)
+    quantizer_class.quantize(model_id, quant_path, bits, dataset_path=dataset_path)
 
 
 def quantize_model_adaptive(
-    model_id: str, quant_path: str, pq_config: PQConfig
+    model_id: str, quant_path: str, pq_config: PQConfig,
+    dataset_path: Optional[str] = None,
 ):  # noqa
     """
     Quantize a model using the specified method.
@@ -264,4 +330,4 @@ def quantize_model_adaptive(
         )
 
     quantizer_class = QUANTIZATION_REGISTRY[method]
-    quantizer_class.quantize_adaptive(model_id, quant_path, pq_config)
+    quantizer_class.quantize_adaptive(model_id, quant_path, pq_config, dataset_path=dataset_path)

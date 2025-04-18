@@ -111,6 +111,12 @@ def profile_model(
                     quantization="AWQ",  # noqa
                     gpu_memory_utilization=gpu_memory_utilization,
                 )  # noqa
+            elif qmethod == 'smoothquant':
+                llm = LLM(
+                    model=model_path,
+                    tensor_parallel_size=tp_size,
+                    gpu_memory_utilization=gpu_memory_utilization,
+                )  # noqa
             else:
                 raise ValueError(
                     f"Unknown quantization method: {qmethod}. Available methods: {list(QUANTIZATION_REGISTRY.keys())}"  # noqa
