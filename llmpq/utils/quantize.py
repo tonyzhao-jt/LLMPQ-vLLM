@@ -6,8 +6,12 @@ from typing import Any, Dict, List, Type, Optional
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModel
 
 from llmpq.config import PQConfig
+from llmpq.logger import init_logger
+
+logger = init_logger(__name__)
 
 QUANTIZATION_REGISTRY: Dict[str, Type["BaseQuantizer"]] = {}
 
@@ -19,6 +23,47 @@ def register_quantization_method(name: str):
 
     return decorator
 
+
+def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model\.layers\.(\d+)\."):
+    '''
+        Get quantization dynamic
+    '''
+    ada_bits = list(map(int, pq_config.adaptive_qbits.split(",")))
+    config = AutoConfig.from_pretrained(model_id)
+    ref_model = AutoModel.from_config(config)
+
+    logger.info("Dummy model loaded")
+    module_names = []
+    for name, module in ref_model.named_modules():
+        if isinstance(module, torch.nn.Linear):
+            module_names.append(name)
+
+    pattern = re.compile(pattern)
+
+    # Organize module names by layer index
+    layer_modules = defaultdict(list)
+    layer_modules["other"] = []
+    for module_name in module_names:
+        match = pattern.search(module_name)
+        if match:
+            layer_index = int(match.group(1))  # Extract the layer index
+            layer_modules[layer_index].append(module_name)
+        else:
+            # Handle modules outside the layers (e.g., "lm_head")
+            layer_modules["other"].append(module_name)
+
+    assert (
+        len(layer_modules) == pq_config.num_layers + 1 # add an other.
+    ), f"layer_modules {len(layer_modules)} not matched, {len(layer_modules)}"
+    dynamic = {}
+    # [bits, group_size, sym, desc_act, mse, pack_dtype]
+    for layer_idx, qbits in enumerate(ada_bits):
+        if qbits == 16:
+            # skip
+            dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {}
+        else:
+            dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {"bits": qbits}
+    return dynamic
 
 class BaseQuantizer:
     @staticmethod
@@ -52,47 +97,12 @@ class GPTQQuantizer(BaseQuantizer):
             f"Model quantized to {bits}-bit using GPTQ and saved to {quant_path}."  # noqa
         )
 
+    
+        
     @staticmethod
     def quantize_adaptive(model_id: str, quant_path: str, pq_config: PQConfig, **kwargs):
-        ada_bits = list(map(int, pq_config.adaptive_qbits.split(",")))
-        ref_model = AutoModelForCausalLM.from_pretrained(
-            model_id
-        )  # noqa create ref model
-        module_names = []
-        for name, module in ref_model.named_modules():
-            if isinstance(module, torch.nn.Linear):
-                module_names.append(name)
-
-        pattern = re.compile(r"model\.layers\.(\d+)\.")
-
-        # Organize module names by layer index
-        layer_modules = defaultdict(list)
-
-        for module_name in module_names:
-            match = pattern.search(module_name)
-            if match:
-                layer_index = int(match.group(1))  # Extract the layer index
-                layer_modules[layer_index].append(module_name)
-            else:
-                # Handle modules outside the layers (e.g., "lm_head")
-                layer_modules["other"].append(module_name)
-        assert (
-            len(layer_modules) == pq_config.num_layers + 1
-        ), f"layer_modules {len(layer_modules)} not matched"
-        dynamic = {}
-        # [bits, group_size, sym, desc_act, mse, pack_dtype]
-        for layer_idx, qbits in enumerate(ada_bits):
-            if qbits == 16:
-                # skip
-                dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {}
-            else:
-                dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {"bits": qbits}
-
-        # dont quantize lm head by default.
-        # dynamic[r"*lm_head*"] = {"bits": ada_bits[-1]}
-
+        dynamic = get_quantize_dynamic(model_id, pq_config)
         from gptqmodel import GPTQModel, QuantizeConfig
-
         calibration_dataset = load_dataset(
             "allenai/c4",
             data_files="en/c4-train.00001-of-01024.json.gz",
@@ -281,12 +291,8 @@ class SmoothQuantQuantizer(BaseQuantizer):
             recipe=recipe,
             max_seq_length=MAX_SEQUENCE_LENGTH,
             num_calibration_samples=NUM_CALIBRATION_SAMPLES,
+            output_dir=quant_path,
         )
-
-        # Save the compressed model
-        SAVE_DIR = quant_path
-        model.save_pretrained(SAVE_DIR, save_compressed=True)
-        tokenizer.save_pretrained(SAVE_DIR)
 
         print(
             f'Model quantized to {bits}-bit using smoothquant and saved at "{quant_path}".'  # noqa
