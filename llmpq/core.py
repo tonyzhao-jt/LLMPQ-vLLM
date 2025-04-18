@@ -13,7 +13,7 @@ def create_ada_model(
         overwrite: bool=False,
     ):
     from llmpq.profiler import shard_model
-    from llmpq.utils import get_quantize_dynamic
+    from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
     model_id = pq_config.model_id_or_path
     bitwidths = set(pq_config.adaptive_qbits.split(","))
@@ -31,16 +31,20 @@ def create_ada_model(
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
     
+    save_path = os.path.join(work_dir, f"sharded")
+    save_path = os.path.abspath(save_path)
+    logger.info(f"Shard model {model_id} to {save_path}")
+    if os.path.exists(save_path) and not overwrite:
+        logger.info(f"save_path {save_path} exists, skip")
+    else:
+        shard_model(model_id, save_path, layer_num=2)
+
     save_path_dict = {}
     for bit, method in bits_method.items():
         logger.info(f"quantize {bit}bit with {method}")
         # shard the model to 2 layers and quantize it
-        save_path = os.path.join(work_dir, f"tmp-{bit}bit")
         q_save_path = os.path.join(work_dir, f"qtmp-{bit}bit")
-        if os.path.exists(q_save_path) and not overwrite:
-            logger.info(f"q_save_path {q_save_path} exists, skip")
-        else:
-            shard_model(model_id, save_path, layer_num=2)
+        q_save_path = os.path.abspath(q_save_path)
         if bit != 16:
             if os.path.exists(q_save_path):
                 logger.info(f"q_save_path {q_save_path} exists, skip")
@@ -51,9 +55,9 @@ def create_ada_model(
             save_path_dict[bit] = save_path
     
     # temporarily works like that, change later.
-    unquantized_tensors = os.join(save_path_dict[16], "model.safetensors")
-    smooth_quant_8bit_tensors = os.join(save_path_dict[8], "model.safetensors")
-    gptq_4bit_tensors = os.join(save_path_dict[4], "model.safetensors")
+    unquantized_tensors = os.path.join(save_path_dict[16], "model.safetensors")
+    smooth_quant_8bit_tensors = os.path.join(save_path_dict[8], "model.safetensors")
+    gptq_4bit_tensors = os.path.join(save_path_dict[4], "model.safetensors")
 
     # check all files exists or not
     if not os.path.exists(unquantized_tensors):
@@ -68,6 +72,9 @@ def create_ada_model(
     # smooth_quant_8bit_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/Llama_3.2_1B_Instruct_sharded-smoothquant-8/model.safetensors"
     # gptq_4bit_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded-gptq-4/model.safetensors"
     # save_ckpt_dummy(pq_config.model_id_or_path, "./tmp/Llama-3.2-1B-Instruct-adaptive")
+
+    logger.info("Dump dummy ckpt")
+    save_ckpt_dummy(pq_config.model_id_or_path, save_dir)
 
     logger.info(f"Generate CKPT for {model_id}, bits: {pq_config.adaptive_qbits}")
     for file_path in [unquantized_tensors, smooth_quant_8bit_tensors, gptq_4bit_tensors]:
@@ -136,13 +143,21 @@ def create_ada_model(
                 raise e
     
     logger.info("Generate QConfig")
+    qconfig_path = os.path.join(save_dir, "quantization_config.json")
+    if os.path.exists(qconfig_path):
+        qbits = json.load(open(qconfig_path))["qbits"]
+        model_id = json.load(open(qconfig_path))["model_id"]
+        if qbits == pq_config.adaptive_qbits and model_id == pq_config.model_id_or_path:
+            logger.info(f"qconfig_path {qconfig_path} exists, skip")
+            return
     dynamic = get_quantize_dynamic(pq_config.model_id_or_path, pq_config, pattern=pattern)
     quantization_config = {
         'quant_method': 'llmpq',
         'dynamic': dynamic,
+        'qbits': pq_config.adaptive_qbits,
+        'model_id': pq_config.model_id_or_path,
     }
     # dump the dymaic to tmp
-    qconfig_path = os.join(save_dir, "quantization_config.json")
     with open(qconfig_path, "w") as f:
-        json.dump(quantization_config, f)
+        json.dump(quantization_config, f, indent=4)
     logger.info(f"Generate Done, quantization_config {quantization_config}")

@@ -248,9 +248,6 @@ class SmoothQuantQuantizer(BaseQuantizer):
             raise ValueError("`bits` must be 4 for AWQ quantization.")
         
         from datasets import load_dataset
-        model = AutoModelForCausalLM.from_pretrained(
-            model_id, device_map="auto", torch_dtype="auto",
-        )
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         NUM_CALIBRATION_SAMPLES = 512
         MAX_SEQUENCE_LENGTH = 2048
@@ -267,7 +264,17 @@ class SmoothQuantQuantizer(BaseQuantizer):
         ds = ds.shuffle(seed=42).select(range(NUM_CALIBRATION_SAMPLES))
 
         def preprocess(example):
-            return {"text": tokenizer.apply_chat_template(example["messages"], tokenize=False)}
+            if tokenizer.chat_template:
+                return {"text": tokenizer.apply_chat_template(example["messages"], tokenize=False)}
+            else:
+                # 假设 example["messages"] 是一个字典，这里将其转换为字符串
+                if isinstance(example["messages"], dict):
+                    text = str(example["messages"])
+                elif isinstance(example["messages"], list):
+                    text = ' '.join(map(str, example["messages"]))
+                else:
+                    text = str(example["messages"])
+            return {"text": text}
         ds = ds.map(preprocess)
 
         def tokenize(sample):
