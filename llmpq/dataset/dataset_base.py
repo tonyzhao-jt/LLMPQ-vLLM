@@ -82,7 +82,7 @@ class BaseDataset:
         sampled_data = self.sample(length=n)
         return self.construct_prompt(sampled_data)
     
-    def sample_n_serving_prompt(self, n: int) -> List[Tuple[str, int, Optional[int]]]:
+    def sample_n_serving_prompt(self, n: int, max_seq_len: Optional[int] = None) -> List[Tuple[str, int, Optional[int]]]:
         """
         Sample n prompts from the dataset.
         Args:
@@ -98,9 +98,9 @@ class BaseDataset:
             prompts = self.sample_n_prompts(n)
             pickle.dump(prompts, f)
     
-    def dump_n_serving_prompts(self, n:int, path: str = './prompts_serving.pkl'):
+    def dump_n_serving_prompts(self, n:int, path: str = './prompts_serving.pkl', max_seq_len: Optional[int] = None):
         with open(path, "wb") as f:
-            prompts = self.sample_n_serving_prompt(n)
+            prompts = self.sample_n_serving_prompt(n, max_seq_len=max_seq_len)
             pickle.dump(prompts, f)
 
     def distribution(self, sample_n: int = 100) -> Dict:

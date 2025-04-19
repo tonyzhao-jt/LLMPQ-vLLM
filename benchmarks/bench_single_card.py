@@ -28,18 +28,41 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--quantization",
+    type=str,
+    default=None,
+    help="Name of the model.",
+)
+
+parser.add_argument(
     '--use-llmpq',
     action='store_true',
+)
+
+# cpu_offload_gb
+parser.add_argument(
+    "--cpu-offload-gb",
+    type=int,
+    default=0,
+    help="Number of GPUs to use for tensor parallelism. If not specified, "
+    "the number of GPUs will be automatically determined based on the "
+    "available GPUs.",
 )
 
 # --tensor-parallel-size
 parser.add_argument(
     "--tensor-parallel-size",
     type=int,
-    default=None,
+    default=1,
     help="Number of GPUs to use for tensor parallelism. If not specified, "
     "the number of GPUs will be automatically determined based on the "
     "available GPUs.",
+)
+
+parser.add_argument(
+    '--dtype',
+    type=str,
+    default='bf16',
 )
 
 if __name__ == "__main__":
@@ -55,20 +78,34 @@ if __name__ == "__main__":
     # Create a sampling params object.
     sampling_params = SamplingParams(temperature=0, top_p=1, max_tokens=max_tokens)
     tensor_parallel_size = args.tensor_parallel_size
+    cpu_offload_gb = args.cpu_offload_gb
+    dtype = args.dtype
     if args.use_llmpq:
         llm = LLM(
             model=model,
             quantization="llmpq",
-            max_num_batched_tokens=2048,
             tensor_parallel_size=tensor_parallel_size,
+            dtype=dtype,
+            cpu_offload_gb=cpu_offload_gb,
         )  # try cpu offload
     else:
-        llm = LLM(
-            model=model,
-            load_format='dummy',
-            max_num_batched_tokens=2048,
-            tensor_parallel_size=tensor_parallel_size,
-        )  
+        if args.quantization:
+            llm = LLM(
+                model=model,
+                load_format='dummy',
+                quantization=args.quantization,
+                tensor_parallel_size=tensor_parallel_size,
+                dtype=dtype,
+                cpu_offload_gb=cpu_offload_gb,
+            )
+        else:
+            llm = LLM(
+                model=model,
+                load_format='dummy',
+                tensor_parallel_size=tensor_parallel_size,
+                dtype=dtype,
+                cpu_offload_gb=cpu_offload_gb,
+            )  
     outputs = llm.generate(prompts, sampling_params)
     # Print the outputs.
     # for output in outputs:
