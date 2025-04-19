@@ -8,6 +8,16 @@ LLM-PQ v2
     export LD_LIBRARY_PATH=/opt/conda/envs/llmpq/lib/python3.10//site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 ```
 
+# EXP models
+3 sizes. Versus 2 hetero case each. 
+# 8b 2 cases?
+```
+    meta-llama/Llama-3.1-8B # 8b
+    deepseek-ai/DeepSeek-R1-Distill-Qwen-32B # 32b
+    meta-llama/Llama-3.1-70B-Instruct-evals # 70b
+```
+llama3.1-8b 
+
 # Implementation Milestones
 全包好了：对于任意模型
 (1)indicator gen：https://github.com/tonyzhao-jt/LLM-PQ/tree/main/scripts/accuracyPPL
