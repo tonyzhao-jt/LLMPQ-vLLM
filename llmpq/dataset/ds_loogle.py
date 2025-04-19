@@ -3,8 +3,9 @@ from datasets import load_dataset
 from .dataset_base import BaseDataset
 
 class LooGLEDataset(BaseDataset):
-    def __init__(self, data_files:str = None):
+    def __init__(self, data_files:str = None, tokenizer=None):
         ds_path = "bigai-nlco/LooGLE"
+        self.tokenizer = tokenizer
         if data_files is not None:
             self.ds = load_dataset(ds_path, "longdep_qa", data_files=data_files)
         else:
@@ -57,7 +58,7 @@ class LooGLEDataset(BaseDataset):
             question = sample["question"]
             answer = sample["answer"]
             prompt = f"Context: {context} Question: {question}"
-            prompt_len, output_len = len(prompt), len(answer)
-            serving_prompts.append((prompt, prompt_len, output_len))
+            output_len = len(self.tokenizer(answer).input_ids)
+            serving_prompts.append((prompt, output_len))
         
         return serving_prompts

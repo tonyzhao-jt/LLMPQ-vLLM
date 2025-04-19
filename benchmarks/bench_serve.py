@@ -33,6 +33,7 @@ import os
 import random
 import time
 import warnings
+import pickle
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple
@@ -95,8 +96,6 @@ def sample_sharegpt_requests(
     fixed_output_len: Optional[int] = None,
 ) -> List[Tuple[str, int, int, None]]:
     # Load the dataset.
-    with open(dataset_path, encoding='utf-8') as f:
-        dataset = json.load(f)
     # Filter out the conversations with less than 2 turns.
     dataset = [data for data in dataset if len(data["conversations"]) >= 2]
     # Only keep the first two turns of each conversation.
@@ -365,6 +364,22 @@ def sample_random_requests(
 
     return input_requests
 
+
+def sample_llmpq_requests(
+    dataset_path: str,
+    tokenizer: PreTrainedTokenizerBase,
+) -> List[Tuple[str, int, int]]:
+    
+    with open(dataset_path, 'rb') as f:
+        data = pickle.load(f)
+    
+    input_requests = []
+    for i, (prompt, output_len) in enumerate(data):
+        prompt_len = len(tokenizer(prompt).input_ids)
+        input_requests.append((prompt, prompt_len,
+                               output_len, None))
+
+    return input_requests
 
 async def get_request(
     input_requests: List[Tuple[str, int, int]],
@@ -868,7 +883,11 @@ def main(args: argparse.Namespace):
             range_ratio=args.random_range_ratio,
             tokenizer=tokenizer,
         )
-
+    elif args.dataset_name == 'llmpq':
+        input_requests = sample_llmpq_requests(
+            dataset_path=args.dataset_path,
+            tokenizer=tokenizer,
+        )
     else:
         raise ValueError(f"Unknown dataset: {args.dataset_name}")
 
@@ -982,7 +1001,7 @@ if __name__ == "__main__":
         "--dataset-name",
         type=str,
         default="sharegpt",
-        choices=["sharegpt", "sonnet", "random", "hf"],
+        choices=["sharegpt", "sonnet", "random", "hf", "llmpq"],
         help="Name of the dataset to benchmark on.",
     )
     parser.add_argument("--dataset-path",

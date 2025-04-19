@@ -4,8 +4,8 @@ from .dataset_base import BaseDataset
 
 
 class CNNDataset(BaseDataset):
-    def __init__(self, data_files:str = None):
-        super().__init__(["abisee/cnn_dailymail"], data_files=data_files)
+    def __init__(self, data_files:str = None, tokenizer=None):
+        super().__init__(["abisee/cnn_dailymail"], data_files=data_files, tokenizer=tokenizer)
 
     def construct_prompt(self, sampled_data: List[Dict]) -> List[str]:
         """
@@ -44,6 +44,7 @@ class CNNDataset(BaseDataset):
         NOTE the function is not correct for the moment.
         As tokenizer is needed.
         """
+        assert self.tokenizer is not None
         sampled_data = self.sample(length=n)
         serving_prompts = []
         # tuple 
@@ -51,7 +52,7 @@ class CNNDataset(BaseDataset):
             highlights = sample["highlights"]
             article = sample["article"]
             prompt = f"Summarize the article: {article}\n"
-            prompt_len, output_len = len(prompt), len(highlights)
-            serving_prompts.append((prompt, prompt_len, output_len))
+            output_len = len(self.tokenizer(highlights).input_ids)
+            serving_prompts.append((prompt, output_len))
         
         return serving_prompts

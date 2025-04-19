@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+import pickle
 from datasets import load_dataset
 from llmpq.logger import init_logger
 
@@ -9,13 +10,14 @@ logger = init_logger(__name__)
 # https://huggingface.co/docs/transformers/main/chat_templating
 
 class BaseDataset:
-    def __init__(self, dataset_paths: List[str], data_files: str = None):
+    def __init__(self, dataset_paths: List[str], data_files: str = None, tokenizer=None):
         """
         Initialize the dataset by loading it from Hugging Face.
 
         Args:
             dataset_path (str): The Hugging Face dataset path.
         """
+        self.tokenizer = tokenizer
         if data_files is not None:
             self.ds = load_dataset(*dataset_paths, data_files=data_files)
         else:
@@ -90,6 +92,16 @@ class BaseDataset:
             (prompt, prompt length, output length)
         """
         pass 
+
+    def dump_n_prompts(self, n:int, path: str = './prompts.pkl'):
+        with open(path, "wb") as f:
+            prompts = self.sample_n_prompts(n)
+            pickle.dump(prompts, f)
+    
+    def dump_n_serving_prompts(self, n:int, path: str = './prompts_serving.pkl'):
+        with open(path, "wb") as f:
+            prompts = self.sample_n_serving_prompt(n)
+            pickle.dump(prompts, f)
 
     def distribution(self, sample_n: int = 100) -> Dict:
         """
