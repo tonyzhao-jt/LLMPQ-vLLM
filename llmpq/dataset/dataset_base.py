@@ -1,19 +1,25 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from datasets import load_dataset
+from llmpq.logger import init_logger
+
+logger = init_logger(__name__)
 
 # https://huggingface.co/docs/transformers/main/chat_templating
 
 class BaseDataset:
-    def __init__(self, dataset_paths: List[str]):
+    def __init__(self, dataset_paths: List[str], data_files: str = None):
         """
         Initialize the dataset by loading it from Hugging Face.
 
         Args:
             dataset_path (str): The Hugging Face dataset path.
         """
-        self.ds = load_dataset(*dataset_paths)
+        if data_files is not None:
+            self.ds = load_dataset(*dataset_paths, data_files=data_files)
+        else:
+            self.ds = load_dataset(*dataset_paths)
 
     def sample(self, length: Optional[int] = None) -> List[Dict]:
         """
@@ -47,6 +53,19 @@ class BaseDataset:
         raise NotImplementedError(
             "Subclasses must implement this method to define their prompt template."  # noqa
         )
+    
+    def construct_output(self, sampled_data: List[Dict]) -> List[str]:
+        """
+        Construct prompts for language models using the sampled data.
+        This method should be overridden by subclasses.
+        Args:
+            sampled_data (List[Dict]): A list of sampled data points.
+        Returns:
+            List[str]: A list of constructed prompts.
+        """
+        raise NotImplementedError(
+            "Subclasses must implement this method to define their prompt template."  # noqa
+        )
 
     def sample_n_prompts(self, n: int) -> List[str]:
         """
@@ -60,8 +79,19 @@ class BaseDataset:
         """
         sampled_data = self.sample(length=n)
         return self.construct_prompt(sampled_data)
+    
+    def sample_n_serving_prompt(self, n: int) -> List[Tuple[str, int, Optional[int]]]:
+        """
+        Sample n prompts from the dataset.
+        Args:
+            n (int): The number of prompts to sample.
+        Returns:
+            List[str]: A list of serving sample, made of
+            (prompt, prompt length, output length)
+        """
+        pass 
 
-    def distribution(self, sample_n: Optional[int] = None) -> Dict:
+    def distribution(self, sample_n: int = 100) -> Dict:
         """
         Get the prompt length distribution of the dataset.
         Returns:
@@ -71,11 +101,21 @@ class BaseDataset:
             sample_n = len(self.ds["train"])
         sampled_data = self.sample(length=sample_n)
         prompts = self.construct_prompt(sampled_data)
+        outputs = self.construct_output(sampled_data)
         prompt_lengths = [len(prompt) for prompt in prompts]
+        output_lengths = [len(output) for output in outputs]
         # percentile
         percentiles = [50, 75, 90, 95, 99]
         distribution = {
             f"{p}th percentile": np.percentile(prompt_lengths, p)
             for p in percentiles  # noqa
         }
+        distribution_outputs = {
+            f"{p}th percentile": np.percentile(output_lengths, p)
+            for p in percentiles  # noqa
+        }
+        logger.info(
+            f"\n Prompt length distribution: {distribution} \n \
+            Output length distribution: {distribution_outputs}"
+        )
         return distribution
