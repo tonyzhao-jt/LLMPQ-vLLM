@@ -10,10 +10,8 @@ def get_h1_h2_from_config(model_config: PretrainedConfig) -> Tuple[int, int]:
         return model_config.hidden_size, model_config.ffn_dim
     elif isinstance(model_config, BloomConfig):
         return model_config.hidden_size, model_config.hidden_size * 4
-    elif isinstance(model_config, LlamaConfig):
-        return model_config.hidden_size, model_config.intermediate_size
     else:
-        raise NotImplementedError
+        return model_config.hidden_size, model_config.intermediate_size
 
 
 def save_ckpt_dummy(model_id: str, save_path: str):

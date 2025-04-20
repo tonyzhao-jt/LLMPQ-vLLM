@@ -11,7 +11,7 @@ class CommCostModel:
     ) -> None:
         self.cost_model = {}
         self.single_card = single_card
-        if not single_card:
+        if not single_card and comm_cost_model_folder is not None:
             assert os.path.exists(
                 comm_cost_model_folder
             ), f"Folder {comm_cost_model_folder} does not exist."

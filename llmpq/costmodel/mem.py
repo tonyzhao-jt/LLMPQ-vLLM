@@ -235,7 +235,11 @@ class ModelMemEstimator:
     def estimate_single_layer_kv_cache(self, unit='b'):
         print(self.b, (self.s + self.n - 1), self.h1)
         return self.calculate_single_layer_maximum_kv_cache(), f"{convert_to_unit(self.calculate_single_layer_maximum_kv_cache(), unit)} {unit}"
-
+    
+def estimate_single_layer_mem(model_mem_estimator:ModelMemEstimator, shards:List = [0], bits: List[int] = [16]):
+    partition = {0: {"shard": shards, "bits": bits}}
+    mem_require, _ = model_mem_estimator.calculate_maximum_mem_occupation_of_partition(partition, unit=PQConfig.MEM_UNIT)
+    return mem_require
 
 def estimate_all_layer_mem(
         estimator: ModelMemEstimator, 
@@ -251,8 +255,7 @@ def estimate_all_layer_mem(
     all_mem_require = 0
     for idx, shards in layer_shard.items():
         bits = bit_map[idx]
-        partition = {idx: {"shard": shards, "bits": bits}}
-        mem_require, _ = estimator.calculate_maximum_mem_occupation_of_partition(partition, unit=PQConfig.MEM_UNIT)
+        mem_require = estimate_single_layer_mem(estimator, shards, bits)
         all_mem_require += mem_require
     return all_mem_require
 
@@ -299,6 +302,7 @@ def get_device_topo_available_mem_with_order(
     lm_head_mem = model_mem_estimator.calculate_lm_head_mem()[0] 
     temp_tensor_mem = model_mem_estimator.calculate_temp_tensor_size_with_bz(prefill_bz, bz_decode_max, unit=mem_unit)[0] 
     temp_later_decode = model_mem_estimator.calculate_temp_tensor_size_next_i(unit=mem_unit)[0]
+    import pdb; pdb.set_trace()
     M_d[0] -= embed_mem
     M_d[-1] -= lm_head_mem
     if len(M_d) > 1:
