@@ -4,6 +4,8 @@ import os
 import json
 from safetensors.torch import load_file, save_file
 from copy import deepcopy
+import random 
+from transformers import AutoConfig
 
 logger = init_logger(__name__)
 def create_ada_model(
@@ -16,14 +18,39 @@ def create_ada_model(
     from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
     model_id = pq_config.model_id_or_path
-    bitwidths = set(pq_config.adaptive_qbits.split(","))
+    config = AutoConfig.from_pretrained(model_id)
+    num_layers = config.num_hidden_layers
+    random_bits = pq_config.random_bits
+    if random_bits:
+        candidate_bitwidth = set([4, 8, 16])
+        # randomly set the bitwidth to different layers, first three layers with candidates
+        bitwidths = list(candidate_bitwidth)
+        for _ in range(num_layers - len(candidate_bitwidth)):
+            bitwidths.append(random.sample(list(candidate_bitwidth), 1)[0])
+    else:
+        bitwidths = set(pq_config.adaptive_qbits.split(","))
+    assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched"
     bit_4_q_method = pq_config.bit_4_q_method
     bit_8_q_method = pq_config.bit_8_q_method
+
+   
+
     bits_method = {
         4: bit_4_q_method,
         8: bit_8_q_method,
         16: None,
     }
+
+    ref_4_qmodel_path = pq_config.ref_4_qmodel_path
+    ref_8_qmodel_path = pq_config.ref_8_qmodel_path
+    ref_16_model_path = pq_config.ref_16_model_path
+
+    ref_model_paths = {
+        4: ref_4_qmodel_path,
+        8: ref_8_qmodel_path,
+        16: ref_16_model_path,
+    }
+
     assert bit_4_q_method in QUANTIZATION_REGISTRY
     assert bit_8_q_method in QUANTIZATION_REGISTRY
     work_dir = pq_config.work_dir
@@ -42,6 +69,10 @@ def create_ada_model(
     save_path_dict = {}
     for bit, method in bits_method.items():
         logger.info(f"quantize {bit}bit with {method}")
+        if ref_model_paths[bit] is not None:
+            logger.info(f"ref_model_paths {ref_model_paths[bit]} exists, skip")
+            save_path_dict[bit] = ref_model_paths[bit]
+            continue
         # shard the model to 2 layers and quantize it
         q_save_path = os.path.join(work_dir, f"qtmp-{bit}bit")
         q_save_path = os.path.abspath(q_save_path)

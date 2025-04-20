@@ -1,7 +1,6 @@
-MODEL=unsloth/Meta-Llama-3.1-8B-Instruct
-MODEL=clowman/Llama-3.1-8B-Instruct-GPTQ-Int8
-MODEL=Qwen/Qwen2.5-7B-Instruct
-MODEL=Qwen/Qwen2.5-7B-Instruct-GPTQ-Int8
+MODEL=deepseek-ai/DeepSeek-R1-Distill-Qwen-14B # OOM
+MODEL=Qwen/Qwen2.5-14B-Instruct-GPTQ-Int8
+DTYPE='bfloat16'
 DTYPE='half'
 python3 /opt/tiger/Saber/llm_pq_v2/benchmarks/bench_single_card.py \
     --model $MODEL \
