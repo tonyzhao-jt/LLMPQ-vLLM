@@ -10,4 +10,3 @@ colorlog
 llmcompressor
 hf_xet
 gptqmodel[vllm]
-protobuf==3.20.0

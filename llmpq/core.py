@@ -59,7 +59,7 @@ def create_ada_model(
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
     
-    save_path = os.path.join(work_dir, f"sharded")
+    save_path = os.path.join(work_dir, f"{model_id_wo_special}-sharded")
     save_path = os.path.abspath(save_path)
     logger.info(f"Shard model {model_id} to {save_path}")
     if os.path.exists(save_path) and not overwrite:
