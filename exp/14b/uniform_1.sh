@@ -18,3 +18,10 @@ python3 /opt/tiger/Saber/llm_pq_v2/benchmarks/bench_single_card.py \
 #     --model $MODEL \
 #     --tensor-parallel-size 4 \
 #     --dataset-path /opt/tiger/Saber/llm_pq_v2/test/dataset/mck.pkl
+
+
+vllm serve Qwen/Qwen2.5-14B-Instruct-GPTQ-Int8 \
+    --load-format dummy  \
+    --tensor-parallel-size 1  \
+    --pipeline-parallel-size 3 \
+    --dtype half

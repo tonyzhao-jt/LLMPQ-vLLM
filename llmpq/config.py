@@ -20,10 +20,12 @@ class PQConfig:
     # mixed-precision setup
     random_bits: bool = False # assign random bits
     bit_4_q_method: str = 'gptq'
-    bit_8_q_method: str = 'smoothquant'
+    bit_8_q_method: str = 'gptq'
+    bit_8_q_tc_method: str = 'smoothquant'
     # ref model path
     ref_4_qmodel_path: str = None
     ref_8_qmodel_path: str = None
+    ref_8_tc_qmodel_path: str = None
     ref_16_model_path: str = None
     # working dir
     work_dir: str = '/tmp/llmpq/work_dir'

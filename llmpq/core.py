@@ -33,22 +33,24 @@ def create_ada_model(
     assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched"
     bit_4_q_method = pq_config.bit_4_q_method
     bit_8_q_method = pq_config.bit_8_q_method
-
-   
+    bit_8_q_tc_method = pq_config.bit_8_q_tc_method
 
     bits_method = {
         4: bit_4_q_method,
         8: bit_8_q_method,
+        '8-tc': bit_8_q_tc_method,
         16: None,
     }
 
     ref_4_qmodel_path = pq_config.ref_4_qmodel_path
     ref_8_qmodel_path = pq_config.ref_8_qmodel_path
+    ref_8_tc_qmodel_path = pq_config.ref_8_tc_qmodel_path
     ref_16_model_path = pq_config.ref_16_model_path
 
     ref_model_paths = {
         4: ref_4_qmodel_path,
         8: ref_8_qmodel_path,
+        '8-tc': ref_8_tc_qmodel_path,
         16: ref_16_model_path,
     }
 
@@ -88,8 +90,9 @@ def create_ada_model(
     
     # temporarily works like that, change later.
     unquantized_tensors = os.path.join(save_path_dict[16], "model.safetensors")
-    smooth_quant_8bit_tensors = os.path.join(save_path_dict[8], "model.safetensors")
+    smooth_quant_8bit_tensors = os.path.join(save_path_dict['8-tc'], "model.safetensors")
     gptq_4bit_tensors = os.path.join(save_path_dict[4], "model.safetensors")
+    gptq_8bit_tensors = os.path.join(save_path_dict[8], "model.safetensors")
 
     # check all files exists or not
     if not os.path.exists(unquantized_tensors):
@@ -98,6 +101,8 @@ def create_ada_model(
         raise ValueError(f"smooth_quant_8bit_tensors {smooth_quant_8bit_tensors} not exists")
     if not os.path.exists(gptq_4bit_tensors):
         raise ValueError(f"gptq_4bit_tensors {gptq_4bit_tensors} not exists")
+    if not os.path.exists(gptq_8bit_tensors):
+        raise ValueError(f"gptq_8bit_tensors {gptq_8bit_tensors} not exists")
 
     # combine two configs to get the final config.
     # unquantized_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded/model.safetensors"
@@ -118,6 +123,7 @@ def create_ada_model(
         try:
             smoothquant_tensors = load_file(smooth_quant_8bit_tensors)
             gptq_tensors = load_file(gptq_4bit_tensors)
+            gptq_8bit_tensors = load_file(gptq_8bit_tensors)
             unquantized_states = load_file(unquantized_tensors)
         except Exception as e:
             raise e
@@ -130,6 +136,7 @@ def create_ada_model(
             unquantized_layer_states = {k: v for k, v in unquantized_states.items() if "layers.0" in k}
             smoothquant_layer_states = {k: v for k, v in smoothquant_tensors.items() if "layers.0" in k}
             gptqquant_layer_states = {k: v for k, v in gptq_tensors.items() if "layers.0" in k}
+            gptq_8bit_layer_states = {k: v for k, v in gptq_8bit_tensors.items() if "layers.0" in k}
 
             # modify smooth quant xxx_scale
             keys = list(smoothquant_layer_states.keys())
@@ -145,8 +152,10 @@ def create_ada_model(
             # craft layers
             bitwidths = pq_config.adaptive_qbits.split(",")
             for layer_idx, bit in enumerate(bitwidths):
-                if bit == '8':
+                if bit == '8-tc':
                     select_layer_states = smoothquant_layer_states
+                elif bit == '8':
+                    select_layer_states = gptq_8bit_layer_states
                 elif bit == '4':
                     select_layer_states = gptqquant_layer_states
                 else:
