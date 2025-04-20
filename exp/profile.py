@@ -1,3 +1,7 @@
+# pip install -v gptqmodel --no-build-isolation
+# pip install bitsandbytes
+import os
+
 import gzip
 import os
 import shutil
@@ -6,13 +10,9 @@ from collections import defaultdict
 from typing import Dict, List
 
 import torch
-from vllm import LLM, SamplingParams
-
 from llmpq.dataset import DummyDataset
-from llmpq.profiler import shard_model
 from llmpq.utils import get_device_name_by_torch  # noqa
-from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
-
+from vllm import LLM, SamplingParams
 
 def profile_model(
     model_id: str,
@@ -24,9 +24,13 @@ def profile_model(
     repeat: int = 10,
     PROFILER_RAW: str = "tmp/vllm_profile",  # noqa
     PROFILER_PARSED: str = "tmp/vllm_profile_parsed",  # noqa
+    work_dir: str = '/tmp/llmpq/work_dir' # noqa
 ) -> Dict[str, Dict[str, float]]:
     # profile the model with given configs.
+    from llmpq.profiler.utils import shard_model
+    from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
 
+    model_id_wo_special = model_id.replace("/", "_")
     batch_size, prompt_length, output_tokens = (
         inputs["batch_size"],
         inputs["prompt_len"],
@@ -36,7 +40,7 @@ def profile_model(
         batch_size=batch_size, prompt_len=prompt_length
     ).gen_prompts()
     # Validate this model still works
-    save_path = f"tmp/llm_pq/{get_device_name_by_torch()}/{model_shard_name}"
+    save_path = os.path.join(work_dir, f"{model_id_wo_special}-sharded")
     # make save path abs path
     save_path = os.path.abspath(save_path)
 
@@ -47,14 +51,14 @@ def profile_model(
         if method == "noq":
             continue
         for _bits in bits:
-            quant_path = f"tmp/llm_pq/{model_shard_name}-{method}-{_bits}"  # noqa
-            abs_path = os.path.abspath(quant_path)
+            q_save_path = os.path.join(work_dir, f"qtmp-{model_id_wo_special}-{bit}bit")
+            q_save_path = os.path.abspath(q_save_path)
             # check if has the file
-            if not os.path.exists(abs_path):
-                quantize_model(method, save_path, abs_path, bits=_bits)
+            if not os.path.exists(q_save_path):
+                quantize_model(method, save_path, q_save_path, bits=_bits)
             else:
-                print(f"Found {abs_path}, skip quantization")
-            method_bitwidth_model_path[method][_bits] = abs_path
+                print(f"Found {q_save_path}, skip quantization")
+            method_bitwidth_model_path[method][_bits] = q_save_path
 
     # setup tkn gen num
     sampling_params = SamplingParams(
@@ -166,3 +170,38 @@ def profile_model(
                                 )  # noqa
                             )
     return output_files
+
+
+PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
+PROFILER_PARSED = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile_parsed"
+REPEAT = 10
+WARMUP = 5
+
+os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
+if __name__ == "__main__":
+    # only profile 2 layers for quant and profiling.
+    model_id = 'Qwen/Qwen2.5-14B-Instruct'
+    model_shard_name = "Qwen2.5-14B-Instruct_sharded"
+    consider_inputs = {
+        "batch_size": 128,
+        "prompt_len": 2048,
+        "output_tokens": 10,
+    }
+    # consider_bitwidth = [4, 8, 16]
+    consider_bitwidth = {
+        'noq': [16], # no quant
+        "gptq": [4, 8],  # weight only
+        # "awq": [4],  # weight only
+        'smoothquant': [8], # w8a8
+    }
+
+    output_files = profile_model(
+        model_id,
+        model_shard_name,
+        consider_inputs,
+        consider_bitwidth,
+        warmup=WARMUP,
+        repeat=REPEAT,
+        PROFILER_RAW=PROFILER_RAW,
+        PROFILER_PARSED=PROFILER_PARSED,
+    )

@@ -46,6 +46,12 @@ def get_device_name_by_torch():
     gpu_name = gpu_name.replace(" ", "_")
     return gpu_name
 
+def get_device_capacity():
+    if torch.cuda.is_available():
+        major, minor = torch.cuda.get_device_capability()
+    else:
+        raise ValueError("No GPU found")
+    return major, minor
 
 def parse_model_id(model_id: str):
     # remove "/" and other special characters

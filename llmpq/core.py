@@ -8,32 +8,23 @@ import random
 from transformers import AutoConfig
 
 logger = init_logger(__name__)
-def create_ada_model(
-        pq_config: PQConfig, 
-        save_dir: str, 
-        pattern: str=r"layers\.(\d+)\.",
+
+def create_mix_precision_shards(
+        pq_config: PQConfig,
         overwrite: bool=False,
     ):
-    from llmpq.profiler import shard_model
-    from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
+    from llmpq.profiler.utils import shard_model
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
+
     model_id = pq_config.model_id_or_path
     model_id_wo_special = model_id.replace("/", "_")
-    config = AutoConfig.from_pretrained(model_id)
-    num_layers = config.num_hidden_layers
-    random_bits = pq_config.random_bits
-    if random_bits:
-        candidate_bitwidth = set([4, 8, 16])
-        # randomly set the bitwidth to different layers, first three layers with candidates
-        bitwidths = list(candidate_bitwidth)
-        for _ in range(num_layers - len(candidate_bitwidth)):
-            bitwidths.append(random.sample(list(candidate_bitwidth), 1)[0])
-    else:
-        bitwidths = set(pq_config.adaptive_qbits.split(","))
-    assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched"
+
     bit_4_q_method = pq_config.bit_4_q_method
     bit_8_q_method = pq_config.bit_8_q_method
     bit_8_q_tc_method = pq_config.bit_8_q_tc_method
+
+    assert bit_4_q_method in QUANTIZATION_REGISTRY
+    assert bit_8_q_method in QUANTIZATION_REGISTRY
 
     bits_method = {
         4: bit_4_q_method,
@@ -53,9 +44,8 @@ def create_ada_model(
         '8-tc': ref_8_tc_qmodel_path,
         16: ref_16_model_path,
     }
+    
 
-    assert bit_4_q_method in QUANTIZATION_REGISTRY
-    assert bit_8_q_method in QUANTIZATION_REGISTRY
     work_dir = pq_config.work_dir
     # check if exists, if not create one
     if not os.path.exists(work_dir):
@@ -87,6 +77,31 @@ def create_ada_model(
             save_path_dict[bit] = q_save_path
         else:
             save_path_dict[bit] = save_path
+
+    return save_path_dict
+
+def create_ada_model(
+        pq_config: PQConfig, 
+        save_dir: str, 
+        pattern: str=r"layers\.(\d+)\.",
+        overwrite: bool=False,
+    ):
+    from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
+    
+    model_id = pq_config.model_id_or_path
+    config = AutoConfig.from_pretrained(model_id)
+    num_layers = config.num_hidden_layers
+    random_bits = pq_config.random_bits
+    candidate_bitwidth = set(pq_config.AVAILABLE_BITS)
+    if random_bits:
+        # randomly set the bitwidth to different layers, first three layers with candidates
+        bitwidths = list(candidate_bitwidth)
+        for _ in range(num_layers - len(candidate_bitwidth)):
+            bitwidths.append(random.sample(list(candidate_bitwidth), 1)[0])
+    else:
+        bitwidths = list(pq_config.adaptive_qbits.split(","))
+    assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched layers {num_layers}"
+    save_path_dict = create_mix_precision_shards(pq_config, overwrite=overwrite)
     
     # temporarily works like that, change later.
     unquantized_tensors = os.path.join(save_path_dict[16], "model.safetensors")
@@ -111,7 +126,13 @@ def create_ada_model(
     # save_ckpt_dummy(pq_config.model_id_or_path, "./tmp/Llama-3.2-1B-Instruct-adaptive")
 
     logger.info("Dump dummy ckpt")
-    save_ckpt_dummy(pq_config.model_id_or_path, save_dir)
+    ref_16_model_path = pq_config.ref_16_model_path
+    if ref_16_model_path is None:
+        save_ckpt_dummy(pq_config.model_id_or_path, save_dir)
+    else:
+        # just copy all files from ref_16_model_path to save_dir
+        import shutil
+        shutil.copytree(ref_16_model_path, save_dir)
 
     logger.info(f"Generate CKPT for {model_id}, bits: {pq_config.adaptive_qbits}")
     for file_path in [unquantized_tensors, smooth_quant_8bit_tensors, gptq_4bit_tensors]:
@@ -202,3 +223,4 @@ def create_ada_model(
     with open(qconfig_path, "w") as f:
         json.dump(quantization_config, f, indent=4)
     logger.info(f"Generate Done, quantization_config {quantization_config}")
+    

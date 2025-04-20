@@ -244,8 +244,8 @@ class AWQQuantizer(BaseQuantizer):
 class SmoothQuantQuantizer(BaseQuantizer):
     @staticmethod
     def quantize(model_id: str, quant_path: str, bits: int, dataset_path: Optional[str] = None, **kwargs):
-        if bits not in [8]:
-            raise ValueError("`bits` must be 4 for AWQ quantization.")
+        if bits not in [8, '8-tc']:
+            raise ValueError("`bits` must be 8 for Smoothquant.")
         
         from datasets import load_dataset
         tokenizer = AutoTokenizer.from_pretrained(model_id)

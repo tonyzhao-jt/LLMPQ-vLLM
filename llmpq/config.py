@@ -7,7 +7,15 @@ from typing import List, Any
 logger = getLogger(__name__)
 
 def _default_bits_factory() -> List[Any]:
-    return [3, 4, '8:tc-li', 16]
+    from .utils import get_device_capacity
+    major, _ = get_device_capacity()
+    if major > 7:
+        return [4, 8, '8-tc', 16]
+    else:
+        return [4, 8, 16]
+
+def _default_bits_wo_info_factory() -> List[Any]:
+    return [4, 8, 16]
 
 @dataclass
 class PQConfig:
@@ -37,7 +45,7 @@ class PQConfig:
         default_factory=_default_bits_factory
     )
     AVAILABLE_BITS_WO_INFO: List[Any] = field(
-        default_factory=_default_bits_factory
+        default_factory=_default_bits_wo_info_factory
     )
     CUDA_CONTEXT_MEM: float = 430 + 1500 # 430MB cuda context allocation + 1.5 G Torch Temp Allocation
                               # conforms to the huggingface's script, which reduce by 2GB
