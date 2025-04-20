@@ -18,6 +18,7 @@ def create_ada_model(
     from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
     model_id = pq_config.model_id_or_path
+    model_id_wo_special = model_id.replace("/", "_")
     config = AutoConfig.from_pretrained(model_id)
     num_layers = config.num_hidden_layers
     random_bits = pq_config.random_bits
@@ -74,7 +75,7 @@ def create_ada_model(
             save_path_dict[bit] = ref_model_paths[bit]
             continue
         # shard the model to 2 layers and quantize it
-        q_save_path = os.path.join(work_dir, f"qtmp-{bit}bit")
+        q_save_path = os.path.join(work_dir, f"qtmp-{model_id_wo_special}-{bit}bit")
         q_save_path = os.path.abspath(q_save_path)
         if bit != 16:
             if os.path.exists(q_save_path):
