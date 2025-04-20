@@ -5,11 +5,14 @@ import gurobipy as gp
 import numpy as np
 import pulp
 
-from llmpq.costmodel.mem import (estimate_all_layer_mem,
+from llmpq.costmodel.mem import (ModelMemEstimator,
+                                 estimate_all_layer_mem,
                                  get_mem_with_layer_bit_pair)
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.v1.device import get_single_device_mem_constraints
 from llmpq.logger import init_logger
+
+from typing import Tuple
 
 logger = init_logger(__name__)
 
@@ -46,12 +49,20 @@ def create_ilp_solver(verbose_ilp, ilp_time_limit, ilp_tolerance):
     return solver
 
 
-def estimate_min_max_mem(estimator, layers, max_bit=16, min_bit=2):
+def estimate_min_max_mem(
+        estimator: ModelMemEstimator, 
+        layers: int, 
+        max_bit: int = 16, 
+        min_bit: int = 2
+    ) -> Tuple[int, int]:
+    layer_shards = {
+        i: [0, 1] for i in range(layers) # full layers for all
+    }
     bit_map = {}
-    assign_uniform_bit(layers, max_bit, bit_map)
-    max_mem = estimate_all_layer_mem(estimator, layers, bit_map)
-    assign_uniform_bit(layers, min_bit, bit_map)
-    min_mem = estimate_all_layer_mem(estimator, layers, bit_map)
+    assign_uniform_bit(layer_shards, max_bit, bit_map)
+    max_mem = estimate_all_layer_mem(estimator, layer_shards, bit_map)
+    assign_uniform_bit(layer_shards, min_bit, bit_map)
+    min_mem = estimate_all_layer_mem(estimator, layer_shards, bit_map)
     return max_mem, min_mem
 
 

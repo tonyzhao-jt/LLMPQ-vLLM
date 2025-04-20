@@ -42,7 +42,6 @@ def rename_device_name(D):
         ref_D[device_name + str(cnt[device_name])] = rank
     return ref_D
 
-
 def reset_device_rank_index(D, current_D):
     # D is the previous rank index
     ref_D = rename_device_name(D)

@@ -1,8 +1,11 @@
 import numpy as np 
 from transformers import OPTConfig
+from typing import Dict, List
 from llmpq.utils import convert_to_unit
 from llmpq.config import PQConfig
 from llmpq.utils.v1.device import get_single_device_mem_constraints
+
+from .topo import DEVICE_TOPO
 
 class ModelMemEstimator:
     def __init__(self, h1, h2, b, s, n, vocab_size=None, max_position_embeddings=None, word_embed_proj_dim=None) -> None:
@@ -22,7 +25,8 @@ class ModelMemEstimator:
         self.max_position_embeddings = max_position_embeddings
         self.word_embed_proj_dim = word_embed_proj_dim
     
-    def calculate_prepost_mem(self, unit='b', bit=16):
+    def calculate_emb_mem(self, bit: int = 16) -> float:
+        unit = PQConfig.MEM_UNIT
         # contain token embedding and positional embedding. Positiona
         if self.vocab_size is None:
             print("Token embedding dim is not specified")
@@ -35,13 +39,28 @@ class ModelMemEstimator:
         # there exists a project_out / project_in for the max_pos_embedding if work_embed_proj_dim != h1
         if self.word_embed_proj_dim != self.h1:
             max_pos_embedding_size += 2 * self.h1 * self.word_embed_proj_dim * 4
-        # there could be project_in and out here.
-        # lm_head
+        mem_embed = max_pos_embedding_size + token_embedding_size
+        mem_embed = mem_embed * bit / 32
+        return convert_to_unit(mem_embed, unit), f"{convert_to_unit(mem_embed, unit)} {unit}"
+
+    def calculate_lm_head_mem(self, bit: int = 16) -> float:
+        unit = PQConfig.MEM_UNIT
+        # contain token embedding and positional embedding. Positiona
+        if self.vocab_size is None:
+            print("Token embedding dim is not specified")
+            return 0
+        # import pdb; pdb.set_trace()
+        # calculate each embedding size
+        # 32 size
         lm_head_weight_size = self.vocab_size * self.word_embed_proj_dim * 4
-        mem_b = token_embedding_size + max_pos_embedding_size + lm_head_weight_size
+        mem_b = lm_head_weight_size
         mem_b = mem_b * bit / 32
-        mem_b += self.calculate_single_layer_ln_weight() * bit / 16
         return convert_to_unit(mem_b, unit), f"{convert_to_unit(mem_b, unit)} {unit}"
+    
+    def calculate_prepost_mem(self, bit=16):
+        # deprecated 
+        pass 
+
     
     def calculate_single_selfattn_mem(self):
         # QKV storage + OUT projection, 4 linear
@@ -200,8 +219,6 @@ class ModelMemEstimator:
                     all_size_estimation += ffn_mem
         return convert_to_unit(all_size_estimation, unit), f'{convert_to_unit(all_size_estimation, unit)} {unit}'
 
-    
-
     def calculate_maximum_mem_occupation_of_partition(self, partition, unit='b'):
         # partition should be with format
         # {0: {"shard": [0,1], "bits": [8,8]}}
@@ -220,16 +237,22 @@ class ModelMemEstimator:
         return self.calculate_single_layer_maximum_kv_cache(), f"{convert_to_unit(self.calculate_single_layer_maximum_kv_cache(), unit)} {unit}"
 
 
-def estimate_single_layer_mem(estimator, shard, bit):
-    partition = {0: {"shard": [shard], "bits": [bit]}}
-    mem_require, _ = estimator.calculate_maximum_mem_occupation_of_partition(partition, unit=PQConfig.MEM_UNIT)
-    return mem_require
-
-def estimate_all_layer_mem(estimator, layers, bit_map):
+def estimate_all_layer_mem(
+        estimator: ModelMemEstimator, 
+        layer_shard: Dict[int, List[int]], 
+        bit_map: Dict[int, int]
+    ) -> float:
+    '''
+        Here shard is a List of int
+        [0] means self attn 
+        [1] means ffn
+        [0, 1] means full layer
+    '''
     all_mem_require = 0
-    for idx, shard in enumerate(layers):
-        bit = bit_map[idx]
-        mem_require = estimate_single_layer_mem(estimator, shard, bit)
+    for idx, shards in layer_shard.items():
+        bits = bit_map[idx]
+        partition = {idx: {"shard": shards, "bits": bits}}
+        mem_require, _ = estimator.calculate_maximum_mem_occupation_of_partition(partition, unit=PQConfig.MEM_UNIT)
         all_mem_require += mem_require
     return all_mem_require
 
@@ -262,13 +285,22 @@ def get_M_with_bitwidth_pair(BITs, model_mem_estimator, group_L, group_size):
     M = np.ceil(M).astype(int) # ceil
     return M
 
-def get_device_topo_available_mem_with_order(current_D, model_mem_estimator, prefill_bz, bz_decode_max, time_mult_times=1):
-    M_d = np.array([get_single_device_mem_constraints(device_name) for d_rank, device_name in current_D.items()]) 
+def get_device_topo_available_mem_with_order(
+        device_topo: DEVICE_TOPO, 
+        model_mem_estimator: ModelMemEstimator, 
+        prefill_bz: int, 
+        bz_decode_max: int, 
+        time_mult_times: float = 1 # adjust
+    ):
+    mem_unit = PQConfig.MEM_UNIT
+    M_d = np.array([get_single_device_mem_constraints(device_name) * cnt for d_rank, (device_name, cnt) in device_topo.items()]) 
     # reduce the embedding size on device 0
-    post_pre_mem = model_mem_estimator.calculate_prepost_mem(unit='MB')[0]
-    temp_tensor_mem = model_mem_estimator.calculate_temp_tensor_size_with_bz(prefill_bz, bz_decode_max, unit='MB')[0] 
-    temp_later_decode = model_mem_estimator.calculate_temp_tensor_size_next_i(unit='MB')[0]
-    M_d[0] -= post_pre_mem
+    embed_mem = model_mem_estimator.calculate_emb_mem()[0] 
+    lm_head_mem = model_mem_estimator.calculate_lm_head_mem()[0] 
+    temp_tensor_mem = model_mem_estimator.calculate_temp_tensor_size_with_bz(prefill_bz, bz_decode_max, unit=mem_unit)[0] 
+    temp_later_decode = model_mem_estimator.calculate_temp_tensor_size_next_i(unit=mem_unit)[0]
+    M_d[0] -= embed_mem
+    M_d[-1] -= lm_head_mem
     if len(M_d) > 1:
         M_d[1:] -= temp_later_decode * time_mult_times
     M_d[0] -= max(temp_tensor_mem, temp_later_decode * time_mult_times)
