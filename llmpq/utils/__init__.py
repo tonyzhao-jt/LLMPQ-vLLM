@@ -7,7 +7,7 @@ from .partition import is_partition_config_valid  # noqa
 from .quantize import get_quantize_dynamic  # noqa
 from .quantize import (QUANTIZATION_REGISTRY, quantize_model,
                        quantize_model_adaptive)
-
+from .randomness import manual_seed
 all__ = [
     "set_seed",
     "quantize_model",
@@ -18,6 +18,7 @@ all__ = [
     "QUANTIZATION_REGISTRY",
     "to_device_recursive",
     "save_ckpt_dummy",
+    "manual_seed",
     # algo related
     "convert_to_unit",
     "assign_uniform_bit",
