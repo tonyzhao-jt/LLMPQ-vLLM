@@ -24,7 +24,7 @@ ds_loo = LooGLEDataset(data_files='/opt/tiger/Saber/llm_pq_v2/test/dataset/short
                        tokenizer=tokenizer)
 prompts = ds_loo.sample_n_serving_prompt(10)
 ds_loo.distribution()
-ds_loo.dump_n_serving_prompts(256, '/opt/tiger/Saber/llm_pq_v2/test/dataset/loo.pkl', max_seq_len=max_seq_len)
+ds_loo.dump_n_serving_prompts(128, '/opt/tiger/Saber/llm_pq_v2/test/dataset/loo.pkl', max_seq_len=max_seq_len)
 
 # ds_mck = MoonCakeDataset(data_files='/opt/tiger/Saber/llm_pq_v2/test/dataset/mooncake_trace.jsonl',
 #                          tokenizer=tokenizer)
