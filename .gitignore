@@ -6,6 +6,7 @@ __pycache__/
 *.pkl
 *.jsonl
 *.parquet
+**/tmp/*
 
 # Distribution / packaging
 .Python

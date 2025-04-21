@@ -28,7 +28,7 @@ def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model
     '''
         Get quantization dynamic
     '''
-    ada_bits = list(map(int, pq_config.adaptive_qbits.split(",")))
+    ada_bits = list(map(str, pq_config.adaptive_qbits.split(",")))
     # remove the check
     # config = AutoConfig.from_pretrained(model_id)
     # ref_model = AutoModel.from_config(config)
