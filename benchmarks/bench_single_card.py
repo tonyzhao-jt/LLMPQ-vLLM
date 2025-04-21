@@ -1,6 +1,7 @@
+from vllm import LLM, SamplingParams
+
 import argparse
 import pickle
-from vllm import LLM, SamplingParams
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset-path",
                         type=str,
@@ -84,6 +85,7 @@ if __name__ == "__main__":
         llm = LLM(
             model=model,
             quantization="llmpq",
+            load_format='dummy',
             tensor_parallel_size=tensor_parallel_size,
             dtype=dtype,
             cpu_offload_gb=cpu_offload_gb,

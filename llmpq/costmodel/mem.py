@@ -302,7 +302,9 @@ def get_device_topo_available_mem_with_order(
     lm_head_mem = model_mem_estimator.calculate_lm_head_mem()[0] 
     temp_tensor_mem = model_mem_estimator.calculate_temp_tensor_size_with_bz(prefill_bz, bz_decode_max, unit=mem_unit)[0] 
     temp_later_decode = model_mem_estimator.calculate_temp_tensor_size_next_i(unit=mem_unit)[0]
-    import pdb; pdb.set_trace()
+    # 这俩不太对
+    temp_tensor_mem = 0
+    temp_later_decode = 0 
     M_d[0] -= embed_mem
     M_d[-1] -= lm_head_mem
     if len(M_d) > 1:

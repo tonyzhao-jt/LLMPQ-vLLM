@@ -7,7 +7,7 @@ lhs = [torch.randn(shape, device=f"cuda:{rank}") for rank in range(nrank)]
 rhs = [torch.randn(shape, device=f"cuda:{rank}") for rank in range(nrank)]
 
 while True:
-    for i in range(nrank):
+    for i in range(1, nrank):
         o = lhs[i] @ rhs[i]
     time.sleep(0.005)
 

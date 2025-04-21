@@ -12,6 +12,7 @@ logger = init_logger(__name__)
 def create_mix_precision_shards(
         pq_config: PQConfig,
         overwrite: bool=False,
+        candidate_bitwidth: set = {4, 8, 16},
     ):
     from llmpq.profiler.utils import shard_model
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
@@ -31,6 +32,10 @@ def create_mix_precision_shards(
         8: bit_8_q_method,
         '8-tc': bit_8_q_tc_method,
         16: None,
+    }
+    # only keep the bits in candidate_bitwidth
+    bits_method = {
+        k: v for k, v in bits_method.items() if k in candidate_bitwidth
     }
 
     ref_4_qmodel_path = pq_config.ref_4_qmodel_path
@@ -101,23 +106,22 @@ def create_ada_model(
     else:
         bitwidths = list(pq_config.adaptive_qbits.split(","))
     assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched layers {num_layers}"
-    save_path_dict = create_mix_precision_shards(pq_config, overwrite=overwrite)
+    save_path_dict = create_mix_precision_shards(pq_config, overwrite=overwrite, candidate_bitwidth=candidate_bitwidth)
     
     # temporarily works like that, change later.
     unquantized_tensors = os.path.join(save_path_dict[16], "model.safetensors")
-    smooth_quant_8bit_tensors = os.path.join(save_path_dict['8-tc'], "model.safetensors")
     gptq_4bit_tensors = os.path.join(save_path_dict[4], "model.safetensors")
     gptq_8bit_tensors = os.path.join(save_path_dict[8], "model.safetensors")
+    tensor_paths = [unquantized_tensors, gptq_4bit_tensors, gptq_8bit_tensors]
 
-    # check all files exists or not
-    if not os.path.exists(unquantized_tensors):
-        raise ValueError(f"unquantized_tensors {unquantized_tensors} not exists")
-    if not os.path.exists(smooth_quant_8bit_tensors):
-        raise ValueError(f"smooth_quant_8bit_tensors {smooth_quant_8bit_tensors} not exists")
-    if not os.path.exists(gptq_4bit_tensors):
-        raise ValueError(f"gptq_4bit_tensors {gptq_4bit_tensors} not exists")
-    if not os.path.exists(gptq_8bit_tensors):
-        raise ValueError(f"gptq_8bit_tensors {gptq_8bit_tensors} not exists")
+
+    enable_smooth_quant = False
+    if '8-tc' in save_path_dict:
+        enable_smooth_quant = True 
+    
+    if enable_smooth_quant:
+        smooth_quant_8bit_tensors = os.path.join(save_path_dict['8-tc'], "model.safetensors")
+        tensor_paths.append(smooth_quant_8bit_tensors)
 
     # combine two configs to get the final config.
     # unquantized_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded/model.safetensors"
@@ -125,45 +129,52 @@ def create_ada_model(
     # gptq_4bit_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded-gptq-4/model.safetensors"
     # save_ckpt_dummy(pq_config.model_id_or_path, "./tmp/Llama-3.2-1B-Instruct-adaptive")
 
-    logger.info("Dump dummy ckpt")
     ref_16_model_path = pq_config.ref_16_model_path
-    if ref_16_model_path is None:
-        save_ckpt_dummy(pq_config.model_id_or_path, save_dir)
+    if not os.path.exists(save_dir):
+        if ref_16_model_path is None:
+            logger.info("Dump dummy ckpt")
+            save_ckpt_dummy(pq_config.model_id_or_path, save_dir)
+        else:
+            # just copy all files from ref_16_model_path to save_dir
+            import shutil
+            shutil.copytree(ref_16_model_path, save_dir)
     else:
-        # just copy all files from ref_16_model_path to save_dir
-        import shutil
-        shutil.copytree(ref_16_model_path, save_dir)
+        logger.info("found existing model")
 
     logger.info(f"Generate CKPT for {model_id}, bits: {pq_config.adaptive_qbits}")
-    for file_path in [unquantized_tensors, smooth_quant_8bit_tensors, gptq_4bit_tensors]:
+    for file_path in tensor_paths:
         if not os.path.exists(file_path):
-            logger.info(f"file {file_path} not exists")
-            break
+            raise ValueError(f"file {file_path} not exists")
+        else:
+            logger.info(f"Extract from {file_path} ")
     else:
         new_states = {}
         try:
-            smoothquant_tensors = load_file(smooth_quant_8bit_tensors)
+            unquantized_states = load_file(unquantized_tensors)
             gptq_tensors = load_file(gptq_4bit_tensors)
             gptq_8bit_tensors = load_file(gptq_8bit_tensors)
-            unquantized_states = load_file(unquantized_tensors)
+
+            if enable_smooth_quant:
+                smoothquant_tensors = load_file(smooth_quant_8bit_tensors)
         except Exception as e:
             raise e
         else:
             # lm head and embedding
-            lm_head_weight = smoothquant_tensors["lm_head.weight"]
-            model_embed_weight = smoothquant_tensors["model.embed_tokens.weight"]
-            model_norm_weight = smoothquant_tensors["model.norm.weight"]
+            lm_head_weight = unquantized_states["lm_head.weight"]
+            model_embed_weight = unquantized_states["model.embed_tokens.weight"]
+            model_norm_weight = unquantized_states["model.norm.weight"]
 
             unquantized_layer_states = {k: v for k, v in unquantized_states.items() if "layers.0" in k}
-            smoothquant_layer_states = {k: v for k, v in smoothquant_tensors.items() if "layers.0" in k}
             gptqquant_layer_states = {k: v for k, v in gptq_tensors.items() if "layers.0" in k}
             gptq_8bit_layer_states = {k: v for k, v in gptq_8bit_tensors.items() if "layers.0" in k}
 
-            # modify smooth quant xxx_scale
-            keys = list(smoothquant_layer_states.keys())
-            for k in keys:
-                if 'scale' in k:
-                    smoothquant_layer_states[k] = smoothquant_layer_states[k][0]
+            if enable_smooth_quant:
+                smoothquant_layer_states = {k: v for k, v in smoothquant_tensors.items() if "layers.0" in k}
+                # modify smooth quant xxx_scale
+                keys = list(smoothquant_layer_states.keys())
+                for k in keys:
+                    if 'scale' in k:
+                        smoothquant_layer_states[k] = smoothquant_layer_states[k][0]
 
             # craft
             new_states["lm_head.weight"] = lm_head_weight
@@ -189,6 +200,7 @@ def create_ada_model(
             # save the new states
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
+
             try:
                 save_file(new_states, os.path.join(save_dir, "model.safetensors"))
                 logger.info(f"new states saved to {save_dir}")
@@ -204,7 +216,7 @@ def create_ada_model(
             except Exception as e:
                 raise e
     
-    logger.info("Generate QConfig")
+    logger.info("Dump QConfig")
     qconfig_path = os.path.join(save_dir, "quantization_config.json")
     if os.path.exists(qconfig_path):
         qbits = json.load(open(qconfig_path))["qbits"]
@@ -218,9 +230,50 @@ def create_ada_model(
         'dynamic': dynamic,
         'qbits': pq_config.adaptive_qbits,
         'model_id': pq_config.model_id_or_path,
+        'prepost_bit': pq_config.prepost_bit
     }
     # dump the dymaic to tmp
     with open(qconfig_path, "w") as f:
         json.dump(quantization_config, f, indent=4)
     logger.info(f"Generate Done, quantization_config {quantization_config}")
+
+
+
+def create_ada_model_dummy(
+        pq_config: PQConfig, 
+        save_dir: str, 
+        pattern: str=r"layers\.(\d+)\.",
+    ):
+    from llmpq.utils import get_quantize_dynamic
+    from huggingface_hub import list_repo_files, hf_hub_download
     
+    model_id = pq_config.model_id_or_path
+
+    all_files = list_repo_files(model_id)
+    non_weight_files = [file for file in all_files if not file.endswith(('.safetensors', '.bin', '.pth'))]
+    for file in non_weight_files:
+        try:
+            hf_hub_download(repo_id=model_id, filename=file, local_dir=save_dir)
+            print(f"download {file} to {save_dir}")
+        except Exception as e:
+            print(f"download {file} err: {e}")
+
+    qconfig_path = os.path.join(save_dir, "quantization_config.json")
+    if os.path.exists(qconfig_path):
+        qbits = json.load(open(qconfig_path))["qbits"]
+        model_id = json.load(open(qconfig_path))["model_id"]
+        if qbits == pq_config.adaptive_qbits and model_id == pq_config.model_id_or_path:
+            logger.info(f"qconfig_path {qconfig_path} exists, skip")
+            return
+    dynamic = get_quantize_dynamic(pq_config.model_id_or_path, pq_config, pattern=pattern)
+    quantization_config = {
+        'quant_method': 'llmpq',
+        'dynamic': dynamic,
+        'qbits': pq_config.adaptive_qbits,
+        'model_id': pq_config.model_id_or_path,
+        'prepost_bit': pq_config.prepost_bit
+    }
+    # dump the dymaic to tmp
+    with open(qconfig_path, "w") as f:
+        json.dump(quantization_config, f, indent=4)
+    logger.info(f"Generate Done, quantization_config {quantization_config}")

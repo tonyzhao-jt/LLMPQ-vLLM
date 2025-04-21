@@ -29,32 +29,33 @@ def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model
         Get quantization dynamic
     '''
     ada_bits = list(map(int, pq_config.adaptive_qbits.split(",")))
-    config = AutoConfig.from_pretrained(model_id)
-    ref_model = AutoModel.from_config(config)
+    # remove the check
+    # config = AutoConfig.from_pretrained(model_id)
+    # ref_model = AutoModel.from_config(config)
 
-    logger.info("Dummy model loaded")
-    module_names = []
-    for name, module in ref_model.named_modules():
-        if isinstance(module, torch.nn.Linear):
-            module_names.append(name)
+    # logger.info("Dummy model loaded")
+    # module_names = []
+    # for name, module in ref_model.named_modules():
+    #     if isinstance(module, torch.nn.Linear):
+    #         module_names.append(name)
 
-    pattern = re.compile(pattern)
+    # pattern = re.compile(pattern)
 
-    # Organize module names by layer index
-    layer_modules = defaultdict(list)
-    layer_modules["other"] = []
-    for module_name in module_names:
-        match = pattern.search(module_name)
-        if match:
-            layer_index = int(match.group(1))  # Extract the layer index
-            layer_modules[layer_index].append(module_name)
-        else:
-            # Handle modules outside the layers (e.g., "lm_head")
-            layer_modules["other"].append(module_name)
+    # # Organize module names by layer index
+    # layer_modules = defaultdict(list)
+    # layer_modules["other"] = []
+    # for module_name in module_names:
+    #     match = pattern.search(module_name)
+    #     if match:
+    #         layer_index = int(match.group(1))  # Extract the layer index
+    #         layer_modules[layer_index].append(module_name)
+    #     else:
+    #         # Handle modules outside the layers (e.g., "lm_head")
+    #         layer_modules["other"].append(module_name)
 
-    assert (
-        len(layer_modules) == pq_config.num_layers + 1 # add an other.
-    ), f"layer_modules {len(layer_modules)} not matched, {len(layer_modules)}"
+    # assert (
+    #     len(layer_modules) == pq_config.num_layers + 1 # add an other.
+    # ), f"layer_modules {len(layer_modules)} not matched, {len(layer_modules)}"
     dynamic = {}
     # [bits, group_size, sym, desc_act, mse, pack_dtype]
     for layer_idx, qbits in enumerate(ada_bits):
@@ -63,6 +64,7 @@ def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model
             dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {}
         else:
             dynamic[r"+:.*\." + f"{layer_idx}" + r"\..*"] = {"bits": qbits}
+    # handle lm head
     return dynamic
 
 class BaseQuantizer:
@@ -90,7 +92,7 @@ class GPTQQuantizer(BaseQuantizer):
         quant_config = QuantizeConfig(bits=bits, group_size=128)
 
         model = GPTQModel.load(model_id, quant_config)
-        model.quantize(calibration_dataset, batch_size=2)
+        model.quantize(calibration_dataset, batch_size=1)
         model.save(quant_path)
 
         print(

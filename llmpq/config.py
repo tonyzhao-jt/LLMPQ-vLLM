@@ -25,6 +25,7 @@ class PQConfig:
     qmethod: str = ("",)  # e.g. gptq
     adaptive_qbits: str = ""  # e.g. "4,4,8,8,8"
     num_layers: int = 16
+    prepost_bit: int = 8
     # mixed-precision setup
     random_bits: bool = False # assign random bits
     bit_4_q_method: str = 'gptq'
@@ -98,7 +99,7 @@ vllm serve <your_quant_path> \\
         # create folder if not exsits
         if not os.path.exists(folder):
             os.makedirs(folder)
-        file_path = os.path.join(folder, "config.json")
+        file_path = os.path.join(folder, "pq_config.json")
         with open(file_path, "w") as f:
             json.dump(self.dump(), f)
         exec_scripts = self.exec_scripts()

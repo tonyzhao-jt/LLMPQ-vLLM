@@ -10,3 +10,4 @@ colorlog
 llmcompressor
 hf_xet
 gptqmodel[vllm]
+huggingface_hub[cli]

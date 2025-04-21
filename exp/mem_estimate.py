@@ -4,7 +4,7 @@ from llmpq.costmodel.mem import estimate_single_layer_mem, get_device_topo_avail
 from llmpq.costmodel.topo import create_device_topo
 from transformers import AutoConfig
 from llmpq.config import PQConfig
-model_id = "Qwen/Qwen2.5-14B-Instruct-GPTQ-Int8"
+model_id = "Qwen/Qwen2.5-7B-Instruct"
 global_bz = micro_bz = 256
 config = AutoConfig.from_pretrained(model_id)
 s = config.max_position_embeddings
