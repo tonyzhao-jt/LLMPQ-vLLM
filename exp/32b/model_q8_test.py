@@ -3,13 +3,13 @@ from llmpq.core import create_ada_model_dummy
 
 if __name__ == "__main__":
     MODEL="Qwen/Qwen2.5-32B-Instruct" # num hidden layers: 64
-    local_path = "./tmp/Qwen2.5-32B-Instruct-q8-1"
+    local_path = "./tmp/Qwen2.5-32B-Instruct-q8-1-test"
     num_4bit = 0
     num_8bit = 0
-    hybrid_pack =  ",".join(["8"] * 14) 
+    hybrid_pack =  ",".join(["8"] * 15) 
     hybrid_pack_1 =  ",".join(["8"] * 15)
     hybrid_pack_2 =  ",".join(["8"] * 15)
-    hybrid_pack_3 =  ",".join(["8-tc"] * 20) 
+    hybrid_pack_3 =  ",".join(["8"] * 19) 
     num_8_tc_bit = 0
     num_16bit = 0
     bit_packs = []

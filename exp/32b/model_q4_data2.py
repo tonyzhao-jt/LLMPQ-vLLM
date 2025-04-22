@@ -9,8 +9,8 @@ if __name__ == "__main__":
     # hybrid_pack =  ",".join(["4"] * 19) + "," + ",".join(["16"] * 3) 
     # hybrid_pack2 =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 8) 
 
-    hybrid_pack =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 8) 
-    hybrid_pack2 =  ",".join(["4"] * 19) + "," + ",".join(["16"] * 3) 
+    hybrid_pack =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 6) 
+    hybrid_pack2 =  ",".join(["4"] * 23) + "," + ",".join(["16"] * 1) 
     
     num_8_tc_bit = 0
     num_16bit = 0

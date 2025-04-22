@@ -5,7 +5,7 @@ export VLLM_PP_LAYER_PARTITION="22,42"
 
 export CUDA_VISIBLE_DEVICES=0
 ray start --head --port 5678
-export VLLM_PP_LAYER_PARTITION="42,22"
+export VLLM_PP_LAYER_PARTITION="40,24"
 
 export CUDA_VISIBLE_DEVICES=0
 ray start --address='10.128.97.213:5678'

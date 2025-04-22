@@ -1,21 +1,17 @@
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 ray start --head --port 5678
-export VLLM_PP_LAYER_PARTITION="26,26,28"
+export VLLM_PP_LAYER_PARTITION="40,40"
 
 
-export CUDA_VISIBLE_DEVICES=0,1
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+export VLLM_PP_LAYER_PARTITION="40,40"
 ray start --address='10.147.181.199:5678'
 # export VLLM_PP_LAYER_PARTITION="40,40"
 
-
-# huihui-ai/Llama-3.3-70B-Instruct-abliterated-finetuned-GPTQ-Int8
-# hugging-quants/Meta-Llama-3.1-70B-Instruct-GPTQ-INT4
-# Sao10K/Llama-3.3-70B-Vulpecula-r1
-
-python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model Meta-Llama-3.1-70B-Instruct-GPTQ-INT4
-
-vllm serve hugging-quants/Meta-Llama-3.1-70B-Instruct-GPTQ-INT4 \
+python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-70B-4bit
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-70B-4bit \
     --load-format dummy  \
-    --tensor-parallel-size 2  \
-    --pipeline-parallel-size 3 \
+    --quantization llmpq \
+    --tensor-parallel-size 4  \
+    --pipeline-parallel-size 2 \
     --dtype half
