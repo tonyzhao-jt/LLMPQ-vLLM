@@ -6,12 +6,14 @@ if __name__ == "__main__":
     # local_path = "./tmp/QWen-72B-8bit"
     # local_path = "./tmp/QWen-72B-4bit"
     MODEL="osllmai-community/Llama-3.3-70B-Instruct"
-    # local_path = "./tmp/Llama-3.3-70B-ada"
+    # local_path = "./tmp/Llama-3.3-70B-4bit"
+    # local_path = "./tmp/Llama-3.3-70B-8bit"
     MODEL='meta-llama/Llama-2-70b-chat-hf'
-    local_path = "./tmp/Llama-2-70B-ada"
-    num_4bit = 20
-    num_8bit = 0
-    num_8_tc_bit = 60
+    # local_path = "./tmp/Llama-2-70B-4bit"
+    local_path = "./tmp/Llama-2-70B-8bit"
+    num_4bit = 0
+    num_8bit = 80
+    num_8_tc_bit = 0
     num_16bit = 0
     bit_packs = []
     if num_4bit > 0:

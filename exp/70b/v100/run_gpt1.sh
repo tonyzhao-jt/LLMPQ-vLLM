@@ -1,5 +1,5 @@
 MODEL_ID=/opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-2-70B-ada
-TYPE='uniform'
+TYPE='pq'
 # python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model $MODEL_ID
 
 python /opt/tiger/Saber/llm_pq_v2/benchmarks/bench_serve.py \
