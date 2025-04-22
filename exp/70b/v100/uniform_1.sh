@@ -27,6 +27,7 @@ python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model /opt/tig
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 ray start --head --port 5678
 export VLLM_PP_LAYER_PARTITION="40,40"
+<<<<<<<< HEAD:exp/70b/A100/uniform_1.sh
 python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit
 vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit \
     --load-format dummy  \
@@ -45,4 +46,27 @@ vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit \
     --quantization llmpq \
     --tensor-parallel-size 1 \
     --pipeline-parallel-size 4
+========
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-2-70B-8bit \
+    --load-format dummy  \
+    --quantization llmpq \
+    --tensor-parallel-size 2 \
+    --pipeline-parallel-size 2 \
+    --dtype half
 
+unset VLLM_PP_LAYER_PARTITION
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-2-70B-ada \
+    --load-format dummy  \
+    --quantization llmpq \
+    --tensor-parallel-size 4 \
+    --pipeline-parallel-size 1 \
+    --dtype half
+
+export VLLM_PP_LAYER_PARTITION="20,20,20,20"
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-2-70B-8bit \
+    --load-format dummy  \
+    --quantization llmpq \
+    --tensor-parallel-size 1 \
+    --pipeline-parallel-size 4 \
+    --dtype half
+>>>>>>>> a675fb2abdb82fbb55ddda20a556c843f4a347d2:exp/70b/v100/uniform_1.sh
