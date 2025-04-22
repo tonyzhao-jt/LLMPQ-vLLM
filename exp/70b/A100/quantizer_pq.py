@@ -6,14 +6,16 @@ if __name__ == "__main__":
     # local_path = "./tmp/QWen-72B-8bit"
     # local_path = "./tmp/QWen-72B-4bit"
     MODEL="osllmai-community/Llama-3.3-70B-Instruct"
-    # local_path = "./tmp/Llama-3.3-70B-ada"
-    MODEL='meta-llama/Llama-2-70b-chat-hf'
-    local_path = "./tmp/Llama-2-70B-ada"
-    num_4bit = 20
+    local_path = "./tmp/Llama-3.3-70B-ada"
+    # MODEL='meta-llama/Llama-2-70b-chat-hf'
+    # local_path = "./tmp/Llama-2-70B-ada"
+    num_4bit = 00
     num_8bit = 0
-    num_8_tc_bit = 60
+    num_8_tc_bit = 0
+    bit_pack = ",".join(["8-tc"] * 10 ) + ',' + ",".join(["4"] * 30)
+    bit_pack_2 = ",".join(["8-tc"] * 10 ) + ',' + ",".join(["4"] * 30) 
     num_16bit = 0
-    bit_packs = []
+    bit_packs = [bit_pack, bit_pack_2]
     if num_4bit > 0:
         bit_pack_4 = ",".join(["4"] * num_4bit)
         bit_packs.append(bit_pack_4)

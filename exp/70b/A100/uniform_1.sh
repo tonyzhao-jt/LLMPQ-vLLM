@@ -26,8 +26,21 @@ vllm serve "osllmai-community/Llama-3.3-70B-Instruct" \
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 ray start --head --port 5678
 export VLLM_PP_LAYER_PARTITION="40,40"
-vllm serve "osllmai-community/Llama-3.3-70B-Instruct" \
+python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit \
     --load-format dummy  \
+    --quantization llmpq \
     --tensor-parallel-size 2 \
-    --pipeline-parallel-size 2 \
-    --dtype half
+    --pipeline-parallel-size 2 
+
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit \
+    --load-format dummy  \
+    --quantization llmpq \
+    --tensor-parallel-size 4 \
+    --pipeline-parallel-size 1 
+
+vllm serve /opt/tiger/Saber/llm_pq_v2/exp/70b/tmp/Llama-3.3-70B-4bit \
+    --load-format dummy  \
+    --quantization llmpq \
+    --tensor-parallel-size 1 \
+    --pipeline-parallel-size 4
