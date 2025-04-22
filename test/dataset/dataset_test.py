@@ -18,8 +18,9 @@ ds_cnn = CNNDataset(data_files='/opt/tiger/Saber/llm_pq_v2/test/dataset/test-000
                     tokenizer=tokenizer)
 prompts = ds_cnn.sample_n_serving_prompt(10)
 ds_cnn.distribution()
-ds_cnn.dump_n_serving_prompts(256, '/opt/tiger/Saber/llm_pq_v2/test/dataset/cnn.pkl', max_seq_len=max_seq_len)
+ds_cnn.dump_n_serving_prompts(512, '/opt/tiger/Saber/llm_pq_v2/test/dataset/cnn.pkl', max_seq_len=max_seq_len)
 
+exit()
 ds_loo = LooGLEDataset(data_files='/opt/tiger/Saber/llm_pq_v2/test/dataset/shortdep_qa.jsonl',
                        tokenizer=tokenizer)
 prompts = ds_loo.sample_n_serving_prompt(10)

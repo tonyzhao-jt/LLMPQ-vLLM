@@ -9,5 +9,5 @@ gurobipy
 colorlog
 llmcompressor
 hf_xet
-gptqmodel[vllm]
+# gptqmodel[vllm]
 huggingface_hub[cli]
