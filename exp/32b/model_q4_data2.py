@@ -6,8 +6,12 @@ if __name__ == "__main__":
     local_path = "./tmp/Qwen2.5-32B-Instruct-ada-dummy-1"
     num_4bit = 0
     num_8bit = 0
-    hybrid_pack =  ",".join(["4"] * 19) + "," + ",".join(["16"] * 3) 
-    hybrid_pack2 =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 8) 
+    # hybrid_pack =  ",".join(["4"] * 19) + "," + ",".join(["16"] * 3) 
+    # hybrid_pack2 =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 8) 
+
+    hybrid_pack =  ",".join(["4"] * 34) + "," + ",".join(["8-tc"] * 8) 
+    hybrid_pack2 =  ",".join(["4"] * 19) + "," + ",".join(["16"] * 3) 
+    
     num_8_tc_bit = 0
     num_16bit = 0
     bit_packs = []
