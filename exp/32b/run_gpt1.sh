@@ -1,4 +1,4 @@
-MODEL_ID=/opt/tiger/Saber/llm_pq_v2/exp/32b/tmp/Qwen2.5-32B-Instruct-q8-1-test
+MODEL_ID=/opt/tiger/Saber/llm_pq_v2/exp/32b/tmp/Qwen2.5-32B-Instruct-q4-test
 # python3 /opt/tiger/Saber/llm_pq_v2/test/dataset/dataset_test.py --model $MODEL_ID
 
 # python /opt/tiger/Saber/llm_pq_v2/benchmarks/bench_serve.py \
