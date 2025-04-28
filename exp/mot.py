@@ -121,29 +121,32 @@ if __name__ == "__main__":
     PROFILER_RAW = f"./tmp/{device_name}/vllm_profile"
     PROFILER_PARSED = f"./tmp/{device_name}/vllm_profile_parsed"
     REPEAT = 10
-    WARMUP = 5
+    WARMUP = 2
 
-    os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
 
     # only profile 2 layers for quant and profiling.
-    consider_inputs = {
-        "batch_size": 128,
-        "prompt_len": 512,
-        "output_tokens": 10,
-    }
-    pq_config = PQConfig(
-        model_id_or_path="meta-llama/Llama-3.2-1B",
-        partition_config="2,6,6,2",
-        pipeline_parallel_size=4,
-        random_bits=True,
-        adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
-        num_layers=16,
-    )
-    output_files = profile_model(
-        pq_config,
-        consider_inputs,
-        warmup=WARMUP,
-        repeat=REPEAT,
-        PROFILER_RAW=PROFILER_RAW,
-        PROFILER_PARSED=PROFILER_PARSED,
-    )
+    for bs in [2, 4, 8]:
+        PROFILER_RAW_BATCH = f"{PROFILER_RAW}/{bs}"
+        PROFILER_PARSED_BATCH = f"{PROFILER_PARSED}/{bs}"
+        os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW_BATCH
+        consider_inputs = {
+            "batch_size": bs,
+            "prompt_len": 512,
+            "output_tokens": 10,
+        }
+        pq_config = PQConfig(
+            model_id_or_path="facebook/opt-30b",
+            partition_config="2,6,6,2",
+            pipeline_parallel_size=4,
+            random_bits=True,
+            adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
+            num_layers=16,
+        )
+        output_files = profile_model(
+            pq_config,
+            consider_inputs,
+            warmup=WARMUP,
+            repeat=REPEAT,
+            PROFILER_RAW=PROFILER_RAW_BATCH,
+            PROFILER_PARSED=PROFILER_PARSED_BATCH,
+        )
