@@ -20,6 +20,7 @@ def create_mix_precision_shards(
     model_id = pq_config.model_id_or_path
     model_id_wo_special = model_id.replace("/", "_")
 
+    bit_3_q_method = pq_config.bit_3_q_method
     bit_4_q_method = pq_config.bit_4_q_method
     bit_8_q_method = pq_config.bit_8_q_method
     bit_8_q_tc_method = pq_config.bit_8_q_tc_method
@@ -28,6 +29,7 @@ def create_mix_precision_shards(
     assert bit_8_q_method in QUANTIZATION_REGISTRY
 
     bits_method = {
+        3: bit_3_q_method,
         4: bit_4_q_method,
         8: bit_8_q_method,
         '8-tc': bit_8_q_tc_method,
@@ -38,12 +40,14 @@ def create_mix_precision_shards(
         k: v for k, v in bits_method.items() if k in candidate_bitwidth
     }
 
+    ref_3_qmodel_path = pq_config.ref_3_qmodel_path
     ref_4_qmodel_path = pq_config.ref_4_qmodel_path
     ref_8_qmodel_path = pq_config.ref_8_qmodel_path
     ref_8_tc_qmodel_path = pq_config.ref_8_tc_qmodel_path
     ref_16_model_path = pq_config.ref_16_model_path
 
     ref_model_paths = {
+        3: ref_3_qmodel_path,
         4: ref_4_qmodel_path,
         8: ref_8_qmodel_path,
         '8-tc': ref_8_tc_qmodel_path,

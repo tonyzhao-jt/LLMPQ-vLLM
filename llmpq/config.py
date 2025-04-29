@@ -28,10 +28,12 @@ class PQConfig:
     prepost_bit: int = 8
     # mixed-precision setup
     random_bits: bool = False # assign random bits
+    bit_3_q_method: str = 'gptq'
     bit_4_q_method: str = 'gptq'
     bit_8_q_method: str = 'gptq'
     bit_8_q_tc_method: str = 'smoothquant'
     # ref model path
+    ref_3_qmodel_path: str = None
     ref_4_qmodel_path: str = None
     ref_8_qmodel_path: str = None
     ref_8_tc_qmodel_path: str = None
