@@ -11,8 +11,9 @@ logger = init_logger(__name__)
 
 def create_mix_precision_shards(
         pq_config: PQConfig,
-        overwrite: bool=False,
+        overwrite: bool = False,
         candidate_bitwidth: set = {4, 8, 16},
+        num_layers: int = 2,
     ):
     from llmpq.profiler.utils import shard_model
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
@@ -66,7 +67,7 @@ def create_mix_precision_shards(
     if os.path.exists(save_path) and not overwrite:
         logger.info(f"save_path {save_path} exists, skip")
     else:
-        shard_model(model_id, save_path, layer_num=2)
+        shard_model(model_id, save_path, layer_num=num_layers)
 
     save_path_dict = {}
     for bit, method in bits_method.items():

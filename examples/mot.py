@@ -19,7 +19,8 @@ def profile_model(
     PROFILER_RAW: Optional[str] = None,  # noqa
     PROFILER_PARSED: Optional[str] = None,  # noqa
     overwrite: bool = False,
-    dtype: str = 'half'
+    dtype: str = 'half',
+    num_layers: int = 2, # the sharded layer number
 ) -> Dict[str, Dict[str, float]]:
     model_id = pq_config.model_id_or_path
     model_id_wo_special = model_id.replace("/", "_")
@@ -51,7 +52,8 @@ def profile_model(
     )
 
     bitwidth_model_shard_paths = create_mix_precision_shards(
-        pq_config, overwrite, candidate_bitwidth=set(pq_config.AVAILABLE_BITS)
+        pq_config, overwrite, candidate_bitwidth=set(pq_config.AVAILABLE_BITS),
+        num_layers=num_layers,
     )
 
 
@@ -139,13 +141,13 @@ if __name__ == "__main__":
         pq_config = PQConfig(
             model_id_or_path="Qwen/Qwen2.5-32B",
             partition_config="2,6,6,2",
-            AVAILABLE_BITS=[
-                3, 4, 8, 16
-            ],
+            # AVAILABLE_BITS=['8-tc'],
+            VAILABLE_BITS=[3, 4, 8, 16],
             pipeline_parallel_size=4,
             random_bits=True,
             adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
             num_layers=16,
+            # work_dir='/users/zhaojuntao/playground/pq_work'
         )
         output_files = profile_model(
             pq_config,
@@ -154,4 +156,5 @@ if __name__ == "__main__":
             repeat=REPEAT,
             PROFILER_RAW=PROFILER_RAW_BATCH,
             PROFILER_PARSED=PROFILER_PARSED_BATCH,
+            num_layers=2,
         )
