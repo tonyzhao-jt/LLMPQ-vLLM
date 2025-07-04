@@ -4,23 +4,26 @@ import torch
 from compressed_tensors.quantization import QuantizationArgs
 from vllm import LLM, SamplingParams
 from vllm.logger import init_logger
-from vllm.model_executor.layers.linear import (LinearBase, LinearMethodBase,
-                                               UnquantizedLinearMethod)
-from vllm.model_executor.layers.quantization import \
-    register_quantization_config
-from vllm.model_executor.layers.quantization.base_config import \
-    QuantizationConfig
-from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors import \
-    CompressedTensorsConfig  # noqa: E501
+from vllm.model_executor.layers.linear import (
+    LinearBase,
+    LinearMethodBase,
+    UnquantizedLinearMethod,
+)
+from vllm.model_executor.layers.quantization import register_quantization_config
+from vllm.model_executor.layers.quantization.base_config import QuantizationConfig
+from vllm.model_executor.layers.quantization.compressed_tensors.compressed_tensors import (
+    CompressedTensorsConfig,
+)  # noqa: E501
 from vllm.model_executor.layers.quantization.gptq import GPTQConfig
-from vllm.model_executor.layers.quantization.gptq_marlin import \
-    GPTQMarlinConfig
-from vllm.model_executor.layers.quantization.gptq_marlin_24 import \
-    GPTQMarlin24Config
-from vllm.model_executor.layers.quantization.utils.gptq_utils import \
-    get_dynamic_override
+from vllm.model_executor.layers.quantization.gptq_marlin import GPTQMarlinConfig
+from vllm.model_executor.layers.quantization.gptq_marlin_24 import GPTQMarlin24Config
+from vllm.model_executor.layers.quantization.utils.gptq_utils import (
+    get_dynamic_override,
+)
 from vllm.model_executor.layers.vocab_parallel_embedding import (
-    ParallelLMHead, UnquantizedEmbeddingMethod)
+    ParallelLMHead,
+    UnquantizedEmbeddingMethod,
+)
 
 logger = init_logger(__name__)
 
@@ -92,8 +95,9 @@ def layer_to_config(
     bit = 16
     if "bits" in dynamic_value:
         bit = dynamic_value["bits"]
-    
+
     from vllm.platforms import current_platform
+
     capability_tuple = current_platform.get_device_capability()
     cap = capability_tuple.to_int()
     scheme = bit_scheme[str(bit)]
@@ -102,15 +106,15 @@ def layer_to_config(
         if cap >= 80:
             gptq_cls = GPTQMarlinConfig
         else:
-            scheme.pop('is_sym')
-            scheme.pop('full_config')
+            scheme.pop("is_sym")
+            scheme.pop("full_config")
             # scheme['desc_act'] = False
-    
+
     if bit == 16:
         return None
-    elif bit == '8-tc':
+    elif bit == "8-tc":
         q_cls = CompressedTensorsConfig(**scheme)
-    elif bit== 8:
+    elif bit == 8:
         q_cls = gptq_cls(**scheme)
     elif bit == 4:
         q_cls = gptq_cls(**scheme)
@@ -205,12 +209,15 @@ class PQQuantConfig(QuantizationConfig):
 
 import argparse
 import pickle
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset-path",
-                        type=str,
-                        default=None,
-                        help="Path to the sharegpt/sonnet dataset. "
-                        "Or the huggingface dataset ID if using HF dataset.")
+parser.add_argument(
+    "--dataset-path",
+    type=str,
+    default=None,
+    help="Path to the sharegpt/sonnet dataset. "
+    "Or the huggingface dataset ID if using HF dataset.",
+)
 parser.add_argument(
     "--max-concurrency",
     type=int,
@@ -222,7 +229,8 @@ parser.add_argument(
     "initiated, this argument will control how many are actually allowed "
     "to execute at a time. This means that when used in combination, the "
     "actual request rate may be lower than specified with --request-rate, "
-    "if the server is not processing requests fast enough to keep up.")
+    "if the server is not processing requests fast enough to keep up.",
+)
 
 parser.add_argument(
     "--model",
@@ -239,8 +247,8 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--use-llmpq',
-    action='store_true',
+    "--use-llmpq",
+    action="store_true",
 )
 
 # cpu_offload_gb
@@ -264,9 +272,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--dtype',
+    "--dtype",
     type=str,
-    default='bf16',
+    default="bfloat16",
 )
 
 if __name__ == "__main__":
@@ -275,7 +283,7 @@ if __name__ == "__main__":
     model = args.model
     with open(data_path, "rb") as f:
         data = pickle.load(f)
-    
+
     prompts = [dp[0] for dp in data]
     max_tokens = max(dp[1] for dp in data)
     # SPDX-License-Identifier: Apache-2.0
@@ -288,7 +296,7 @@ if __name__ == "__main__":
         llm = LLM(
             model=model,
             quantization="llmpq",
-            load_format='dummy',
+            load_format="dummy",
             tensor_parallel_size=tensor_parallel_size,
             dtype=dtype,
             cpu_offload_gb=cpu_offload_gb,
@@ -297,7 +305,7 @@ if __name__ == "__main__":
         if args.quantization:
             llm = LLM(
                 model=model,
-                load_format='dummy',
+                load_format="dummy",
                 quantization=args.quantization,
                 tensor_parallel_size=tensor_parallel_size,
                 dtype=dtype,
@@ -306,17 +314,17 @@ if __name__ == "__main__":
         else:
             llm = LLM(
                 model=model,
-                load_format='dummy',
+                load_format="dummy",
                 tensor_parallel_size=tensor_parallel_size,
                 dtype=dtype,
                 cpu_offload_gb=cpu_offload_gb,
-            )  
+            )
     outputs = llm.generate(prompts, sampling_params)
     # Print the outputs.
     # for output in outputs:
     #     prompt = output.prompt
     #     generated_text = output.outputs[0].text
     #     tkn_num = len(output.outputs[0].token_ids)
-        # print(
-        #     f"Prompt: {prompt!r}, Generated text: {generated_text!r}, token_num: {tkn_num}"
-        # )
+    # print(
+    #     f"Prompt: {prompt!r}, Generated text: {generated_text!r}, token_num: {tkn_num}"
+    # )

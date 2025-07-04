@@ -2,12 +2,15 @@ from vllm import LLM, SamplingParams
 
 import argparse
 import pickle
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset-path",
-                        type=str,
-                        default=None,
-                        help="Path to the sharegpt/sonnet dataset. "
-                        "Or the huggingface dataset ID if using HF dataset.")
+parser.add_argument(
+    "--dataset-path",
+    type=str,
+    default=None,
+    help="Path to the sharegpt/sonnet dataset. "
+    "Or the huggingface dataset ID if using HF dataset.",
+)
 parser.add_argument(
     "--max-concurrency",
     type=int,
@@ -19,7 +22,8 @@ parser.add_argument(
     "initiated, this argument will control how many are actually allowed "
     "to execute at a time. This means that when used in combination, the "
     "actual request rate may be lower than specified with --request-rate, "
-    "if the server is not processing requests fast enough to keep up.")
+    "if the server is not processing requests fast enough to keep up.",
+)
 
 parser.add_argument(
     "--model",
@@ -36,8 +40,8 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--use-llmpq',
-    action='store_true',
+    "--use-llmpq",
+    action="store_true",
 )
 
 # cpu_offload_gb
@@ -61,9 +65,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--dtype',
+    "--dtype",
     type=str,
-    default='bf16',
+    default="bf16",
 )
 
 if __name__ == "__main__":
@@ -72,7 +76,7 @@ if __name__ == "__main__":
     model = args.model
     with open(data_path, "rb") as f:
         data = pickle.load(f)
-    
+
     prompts = [dp[0] for dp in data]
     max_tokens = max(dp[1] for dp in data)
     # SPDX-License-Identifier: Apache-2.0
@@ -85,7 +89,7 @@ if __name__ == "__main__":
         llm = LLM(
             model=model,
             quantization="llmpq",
-            load_format='dummy',
+            load_format="dummy",
             tensor_parallel_size=tensor_parallel_size,
             dtype=dtype,
             cpu_offload_gb=cpu_offload_gb,
@@ -94,7 +98,7 @@ if __name__ == "__main__":
         if args.quantization:
             llm = LLM(
                 model=model,
-                load_format='dummy',
+                load_format="dummy",
                 quantization=args.quantization,
                 tensor_parallel_size=tensor_parallel_size,
                 dtype=dtype,
@@ -103,17 +107,17 @@ if __name__ == "__main__":
         else:
             llm = LLM(
                 model=model,
-                load_format='dummy',
+                load_format="dummy",
                 tensor_parallel_size=tensor_parallel_size,
                 dtype=dtype,
                 cpu_offload_gb=cpu_offload_gb,
-            )  
+            )
     outputs = llm.generate(prompts, sampling_params)
     # Print the outputs.
     # for output in outputs:
     #     prompt = output.prompt
     #     generated_text = output.outputs[0].text
     #     tkn_num = len(output.outputs[0].token_ids)
-        # print(
-        #     f"Prompt: {prompt!r}, Generated text: {generated_text!r}, token_num: {tkn_num}"
-        # )
+    # print(
+    #     f"Prompt: {prompt!r}, Generated text: {generated_text!r}, token_num: {tkn_num}"
+    # )

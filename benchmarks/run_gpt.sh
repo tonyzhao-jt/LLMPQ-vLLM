@@ -4,6 +4,6 @@
 
 python bench_serve.py \
     --backend vllm \
-    --model /opt/tiger/Saber/llm_pq_v2/test/tmp/Llama-3.2-1B-ada \
+    --model /yourpath//llm_pq_v2/test/tmp/Llama-3.2-1B-ada \
     --dataset-name llmpq \
-    --dataset-path /opt/tiger/Saber/llm_pq_v2/test/dataset/cnn.pkl
+    --dataset-path /yourpath//llm_pq_v2/test/dataset/cnn.pkl
