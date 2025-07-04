@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace  # 删除行尾空白
+      - id: end-of-file-fixer     # 确保文件以换行符结尾
+      - id: check-yaml           # 检查 YAML 文件格式
+      - id: check-added-large-files  # 检查是否添加了大文件
+
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black  # 自动格式化 Python 代码
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8  # 检查 Python 代码风格
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort  # 自动排序 Python 导入

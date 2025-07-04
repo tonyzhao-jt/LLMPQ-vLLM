@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
+
+
 from vllm import LLM, SamplingParams
+
 # Sample prompts.
 prompts = [
     "Hello, my name is",
@@ -10,8 +13,10 @@ prompts = [
 # Create a sampling params object.
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95, max_tokens=100)
 
-llm = LLM(model="meta-llama/Llama-3.2-1B", load_format="dummy")  # try cpu offload
-
+llm = LLM(
+    model="/yourpath//llm_pq_v2/examples/tmp/llm_pq/Llama_3.2_1B_Instruct_sharded-smoothquant-8",
+    load_format="dummy",
+)  # try cpu offload
 outputs = llm.generate(prompts, sampling_params)
 # Print the outputs.
 for output in outputs:

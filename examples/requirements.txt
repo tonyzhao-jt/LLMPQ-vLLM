@@ -1,0 +1,3 @@
+bitsandbytes
+gptqmodel==2.1.0
+autoawq

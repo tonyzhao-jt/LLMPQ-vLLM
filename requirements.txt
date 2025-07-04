@@ -1,1 +1,13 @@
 vllm
+pre-commit
+datasets
+scikit-learn
+statsmodels
+joblib
+pulp
+gurobipy
+colorlog
+llmcompressor
+hf_xet
+# gptqmodel[vllm]
+huggingface_hub[cli]
