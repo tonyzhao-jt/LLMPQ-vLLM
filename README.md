@@ -1,9 +1,7 @@
-Here is a polished version of your README:
-
 # LLMPQ-vLLM
 ================
 
-LLMPQ with vLLM backend. The backend acts as a hack to allow vLLM serving to be piplining heterogenous and precision (quantization) heterogenous.
+LLMPQ with vLLM backend. The backend acts as a hack to allow vLLM serving to be piplining heterogenous and precision (quantization) heterogenous （mixed precision）.
 
 ## Installation
 ---------------
