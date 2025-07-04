@@ -1,7 +1,7 @@
 import argparse
 import os
 import numpy as np
-from transformers import AutoConfig 
+from transformers import AutoConfig
 
 from llmpq.config import PQConfig, gen_config
 from llmpq.optimizer.algo.algo_utils import set_root_folder
@@ -11,11 +11,14 @@ from llmpq.logger import assert_log, init_logger
 from llmpq.utils.misc import parse_model_id
 
 logger = init_logger(__name__)
-ROOT_DIR = set_root_folder() # act as work directory
+ROOT_DIR = set_root_folder()  # act as work directory
+
+
 def verbose_device_info(device_names, device_numbers, device_info):
     print(f"device_names {device_names}")
     print(f"device_numbers {device_numbers}")
     print(f"device_info {device_info}")
+
 
 def common_argparser():
     parser = argparse.ArgumentParser()
@@ -45,9 +48,7 @@ def common_argparser():
         type=str,
         default=f"{ROOT_DIR}/profile/lat_prepost_profiled_result",
     )
-    parser.add_argument(
-        "--store_folder", type=str, default=f"{ROOT_DIR}/part_strategy"
-    )
+    parser.add_argument("--store_folder", type=str, default=f"{ROOT_DIR}/part_strategy")
     # ilp control
     # different seed result in different performance
     parser.add_argument("--ilp_seed", type=int, default=42)
@@ -104,7 +105,7 @@ def common_argparser():
     PQConfig.TIME_MULT_TIMES = args.time_mult_times
 
     # modelname and size
-    model_id = args.model_id 
+    model_id = args.model_id
     config = AutoConfig.from_pretrained(model_id)
     args.model_id = parse_model_id(args.model_id)
     args.config = config

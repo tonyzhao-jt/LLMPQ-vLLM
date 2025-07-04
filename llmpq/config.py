@@ -2,20 +2,24 @@ import json
 import os
 from dataclasses import dataclass, field
 from logging import getLogger
-from typing import List, Any 
+from typing import List, Any
 
 logger = getLogger(__name__)
 
+
 def _default_bits_factory() -> List[Any]:
     from .utils import get_device_capacity
+
     major, _ = get_device_capacity()
     if major > 7:
-        return [4, 8, '8-tc', 16]
+        return [4, 8, "8-tc", 16]
     else:
         return [4, 8, 16]
 
+
 def _default_bits_wo_info_factory() -> List[Any]:
     return [4, 8, 16]
+
 
 @dataclass
 class PQConfig:
@@ -27,11 +31,11 @@ class PQConfig:
     num_layers: int = 16
     prepost_bit: int = 8
     # mixed-precision setup
-    random_bits: bool = False # assign random bits
-    bit_3_q_method: str = 'gptq'
-    bit_4_q_method: str = 'gptq'
-    bit_8_q_method: str = 'gptq'
-    bit_8_q_tc_method: str = 'smoothquant'
+    random_bits: bool = False  # assign random bits
+    bit_3_q_method: str = "gptq"
+    bit_4_q_method: str = "gptq"
+    bit_8_q_method: str = "gptq"
+    bit_8_q_tc_method: str = "smoothquant"
     # ref model path
     ref_3_qmodel_path: str = None
     ref_4_qmodel_path: str = None
@@ -39,22 +43,22 @@ class PQConfig:
     ref_8_tc_qmodel_path: str = None
     ref_16_model_path: str = None
     # working dir
-    work_dir: str = '/tmp/llmpq/work_dir'
+    work_dir: str = "/tmp/llmpq/work_dir"
     # v1: algo related
-    gamma: float = 0.5 # expected generated tokens
-    theta: float = 0.1 # control the concern for accuracy
-    MEM_UNIT: str = 'MB'
-    AVAILABLE_BITS: List[Any] = field(
-        default_factory=_default_bits_factory
-    )
+    gamma: float = 0.5  # expected generated tokens
+    theta: float = 0.1  # control the concern for accuracy
+    MEM_UNIT: str = "MB"
+    AVAILABLE_BITS: List[Any] = field(default_factory=_default_bits_factory)
     AVAILABLE_BITS_WO_INFO: List[Any] = field(
         default_factory=_default_bits_wo_info_factory
     )
-    CUDA_CONTEXT_MEM: float = 430 + 1500 # 430MB cuda context allocation + 1.5 G Torch Temp Allocation
-                              # conforms to the huggingface's script, which reduce by 2GB
-    RATIO_AVOID_OOM: float = 0.95 # 95% of the memory is used to avoid OOM
-    SLO_RATE: float = 1.5 # times of fp16 inference time to be SLO.
-    
+    CUDA_CONTEXT_MEM: float = (
+        430 + 1500
+    )  # 430MB cuda context allocation + 1.5 G Torch Temp Allocation
+    # conforms to the huggingface's script, which reduce by 2GB
+    RATIO_AVOID_OOM: float = 0.95  # 95% of the memory is used to avoid OOM
+    SLO_RATE: float = 1.5  # times of fp16 inference time to be SLO.
+
     # dump and load function (in json)
     def dump(self):
         return {
@@ -68,6 +72,7 @@ class PQConfig:
         dump to the execution scripts
         """
         from llmpq.utils import is_partition_config_valid
+
         assert is_partition_config_valid(
             (self.partition_config, self.pipeline_parallel_size),
             self.num_layers,  # noqa
@@ -130,7 +135,8 @@ class GenerationConfig:
     micro_bz: int
     # prompt length, generated sequence length
     s: int
-    n: int 
+    n: int
 
-# init one 
+
+# init one
 gen_config = GenerationConfig(global_bz=16, micro_bz=4, s=512, n=100)

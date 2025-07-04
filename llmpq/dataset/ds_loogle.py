@@ -3,10 +3,12 @@ from datasets import load_dataset
 from .dataset_base import BaseDataset
 
 from llmpq.logger import init_logger
+
 logger = init_logger(__name__)
 
+
 class LooGLEDataset(BaseDataset):
-    def __init__(self, data_files:str = None, tokenizer=None):
+    def __init__(self, data_files: str = None, tokenizer=None):
         ds_path = "bigai-nlco/LooGLE"
         self.tokenizer = tokenizer
         if data_files is not None:
@@ -31,7 +33,7 @@ class LooGLEDataset(BaseDataset):
             prompt = f"Context: {context} Question: {question}"
             prompts.append(prompt)
         return prompts
-    
+
     def construct_output(self, sampled_data: List[Dict]) -> List[str]:
         """
         Construct prompts for the GPQA dataset.
@@ -46,7 +48,6 @@ class LooGLEDataset(BaseDataset):
             prompts.append(answer)
         return prompts
 
-
     def sample_n_serving_prompt(self, n: int) -> List[Tuple[str, int, Optional[int]]]:
         """
         NOTE the function is not correct for the moment.
@@ -54,7 +55,7 @@ class LooGLEDataset(BaseDataset):
         """
         sampled_data = self.sample(length=n)
         serving_prompts = []
-        # tuple 
+        # tuple
         for sample in sampled_data:
             # dict_keys(['id', 'doc_id', 'task', 'context', 'question', 'answer', 'evidence', 'title'])
             context = sample["context"]
@@ -63,10 +64,12 @@ class LooGLEDataset(BaseDataset):
             prompt = f"Context: {context} Question: {question}"
             output_len = len(self.tokenizer(answer).input_ids)
             serving_prompts.append((prompt, output_len))
-        
+
         return serving_prompts
 
-    def sample_n_serving_prompt(self, n: int, max_seq_len: Optional[int] = None) -> List[Tuple[str, int, Optional[int]]]:
+    def sample_n_serving_prompt(
+        self, n: int, max_seq_len: Optional[int] = None
+    ) -> List[Tuple[str, int, Optional[int]]]:
         """
         NOTE the function is not correct for the moment.
         As tokenizer is needed.
@@ -74,7 +77,7 @@ class LooGLEDataset(BaseDataset):
         assert self.tokenizer is not None
         serving_prompts = []
         attempt = 0
-        max_attempts = 10 
+        max_attempts = 10
 
         while len(serving_prompts) < n and attempt < max_attempts:
             sampled_data = self.sample(length=n)

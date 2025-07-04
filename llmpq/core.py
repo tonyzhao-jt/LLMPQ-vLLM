@@ -1,20 +1,21 @@
 from .config import PQConfig
 from llmpq.logger import init_logger
-import os 
+import os
 import json
 from safetensors.torch import load_file, save_file
 from copy import deepcopy
-import random 
+import random
 from transformers import AutoConfig
 
 logger = init_logger(__name__)
 
+
 def create_mix_precision_shards(
-        pq_config: PQConfig,
-        overwrite: bool = False,
-        candidate_bitwidth: set = {4, 8, 16},
-        num_layers: int = 2,
-    ):
+    pq_config: PQConfig,
+    overwrite: bool = False,
+    candidate_bitwidth: set = {4, 8, 16},
+    num_layers: int = 2,
+):
     from llmpq.profiler.utils import shard_model
     from llmpq.utils import QUANTIZATION_REGISTRY, quantize_model
 
@@ -33,13 +34,11 @@ def create_mix_precision_shards(
         3: bit_3_q_method,
         4: bit_4_q_method,
         8: bit_8_q_method,
-        '8-tc': bit_8_q_tc_method,
+        "8-tc": bit_8_q_tc_method,
         16: None,
     }
     # only keep the bits in candidate_bitwidth
-    bits_method = {
-        k: v for k, v in bits_method.items() if k in candidate_bitwidth
-    }
+    bits_method = {k: v for k, v in bits_method.items() if k in candidate_bitwidth}
 
     ref_3_qmodel_path = pq_config.ref_3_qmodel_path
     ref_4_qmodel_path = pq_config.ref_4_qmodel_path
@@ -51,16 +50,15 @@ def create_mix_precision_shards(
         3: ref_3_qmodel_path,
         4: ref_4_qmodel_path,
         8: ref_8_qmodel_path,
-        '8-tc': ref_8_tc_qmodel_path,
+        "8-tc": ref_8_tc_qmodel_path,
         16: ref_16_model_path,
     }
-    
 
     work_dir = pq_config.work_dir
     # check if exists, if not create one
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
-    
+
     save_path = os.path.join(work_dir, f"{model_id_wo_special}-sharded")
     save_path = os.path.abspath(save_path)
     logger.info(f"Shard model {model_id} to {save_path}")
@@ -90,14 +88,15 @@ def create_mix_precision_shards(
 
     return save_path_dict
 
+
 def create_ada_model(
-        pq_config: PQConfig, 
-        save_dir: str, 
-        pattern: str=r"layers\.(\d+)\.",
-        overwrite: bool=False,
-    ):
+    pq_config: PQConfig,
+    save_dir: str,
+    pattern: str = r"layers\.(\d+)\.",
+    overwrite: bool = False,
+):
     from llmpq.utils import get_quantize_dynamic, save_ckpt_dummy
-    
+
     model_id = pq_config.model_id_or_path
     config = AutoConfig.from_pretrained(model_id)
     num_layers = config.num_hidden_layers
@@ -110,28 +109,33 @@ def create_ada_model(
             bitwidths.append(random.sample(list(candidate_bitwidth), 1)[0])
     else:
         bitwidths = list(pq_config.adaptive_qbits.split(","))
-    assert len(bitwidths) == num_layers, f"bitwidths {bitwidths} number {len(bitwidths)} not matched layers {num_layers}"
-    save_path_dict = create_mix_precision_shards(pq_config, overwrite=overwrite, candidate_bitwidth=candidate_bitwidth)
-    
+    assert (
+        len(bitwidths) == num_layers
+    ), f"bitwidths {bitwidths} number {len(bitwidths)} not matched layers {num_layers}"
+    save_path_dict = create_mix_precision_shards(
+        pq_config, overwrite=overwrite, candidate_bitwidth=candidate_bitwidth
+    )
+
     # temporarily works like that, change later.
     unquantized_tensors = os.path.join(save_path_dict[16], "model.safetensors")
     gptq_4bit_tensors = os.path.join(save_path_dict[4], "model.safetensors")
     gptq_8bit_tensors = os.path.join(save_path_dict[8], "model.safetensors")
     tensor_paths = [unquantized_tensors, gptq_4bit_tensors, gptq_8bit_tensors]
 
-
     enable_smooth_quant = False
-    if '8-tc' in save_path_dict:
-        enable_smooth_quant = True 
-    
+    if "8-tc" in save_path_dict:
+        enable_smooth_quant = True
+
     if enable_smooth_quant:
-        smooth_quant_8bit_tensors = os.path.join(save_path_dict['8-tc'], "model.safetensors")
+        smooth_quant_8bit_tensors = os.path.join(
+            save_path_dict["8-tc"], "model.safetensors"
+        )
         tensor_paths.append(smooth_quant_8bit_tensors)
 
     # combine two configs to get the final config.
-    # unquantized_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded/model.safetensors"
-    # smooth_quant_8bit_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/Llama_3.2_1B_Instruct_sharded-smoothquant-8/model.safetensors"
-    # gptq_4bit_tensors = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded-gptq-4/model.safetensors"
+    # unquantized_tensors = "/yourpath//llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded/model.safetensors"
+    # smooth_quant_8bit_tensors = "/yourpath//llm_pq_v2/examples/tmp/llm_pq/Llama_3.2_1B_Instruct_sharded-smoothquant-8/model.safetensors"
+    # gptq_4bit_tensors = "/yourpath//llm_pq_v2/examples/tmp/llm_pq/NVIDIA_A100-SXM4-40GB/Llama_3.2_1B_Instruct_sharded-gptq-4/model.safetensors"
     # save_ckpt_dummy(pq_config.model_id_or_path, "./tmp/Llama-3.2-1B-Instruct-adaptive")
 
     ref_16_model_path = pq_config.ref_16_model_path
@@ -142,6 +146,7 @@ def create_ada_model(
         else:
             # just copy all files from ref_16_model_path to save_dir
             import shutil
+
             shutil.copytree(ref_16_model_path, save_dir)
     else:
         logger.info("found existing model")
@@ -169,16 +174,24 @@ def create_ada_model(
             model_embed_weight = unquantized_states["model.embed_tokens.weight"]
             model_norm_weight = unquantized_states["model.norm.weight"]
 
-            unquantized_layer_states = {k: v for k, v in unquantized_states.items() if "layers.0" in k}
-            gptqquant_layer_states = {k: v for k, v in gptq_tensors.items() if "layers.0" in k}
-            gptq_8bit_layer_states = {k: v for k, v in gptq_8bit_tensors.items() if "layers.0" in k}
+            unquantized_layer_states = {
+                k: v for k, v in unquantized_states.items() if "layers.0" in k
+            }
+            gptqquant_layer_states = {
+                k: v for k, v in gptq_tensors.items() if "layers.0" in k
+            }
+            gptq_8bit_layer_states = {
+                k: v for k, v in gptq_8bit_tensors.items() if "layers.0" in k
+            }
 
             if enable_smooth_quant:
-                smoothquant_layer_states = {k: v for k, v in smoothquant_tensors.items() if "layers.0" in k}
+                smoothquant_layer_states = {
+                    k: v for k, v in smoothquant_tensors.items() if "layers.0" in k
+                }
                 # modify smooth quant xxx_scale
                 keys = list(smoothquant_layer_states.keys())
                 for k in keys:
-                    if 'scale' in k:
+                    if "scale" in k:
                         smoothquant_layer_states[k] = smoothquant_layer_states[k][0]
 
             # craft
@@ -189,11 +202,11 @@ def create_ada_model(
             # craft layers
             bitwidths = pq_config.adaptive_qbits.split(",")
             for layer_idx, bit in enumerate(bitwidths):
-                if bit == '8-tc':
+                if bit == "8-tc":
                     select_layer_states = smoothquant_layer_states
-                elif bit == '8':
+                elif bit == "8":
                     select_layer_states = gptq_8bit_layer_states
-                elif bit == '4':
+                elif bit == "4":
                     select_layer_states = gptqquant_layer_states
                 else:
                     select_layer_states = unquantized_layer_states
@@ -220,7 +233,7 @@ def create_ada_model(
                     logger.info(key)
             except Exception as e:
                 raise e
-    
+
     logger.info("Dump QConfig")
     qconfig_path = os.path.join(save_dir, "quantization_config.json")
     if os.path.exists(qconfig_path):
@@ -229,13 +242,15 @@ def create_ada_model(
         if qbits == pq_config.adaptive_qbits and model_id == pq_config.model_id_or_path:
             logger.info(f"qconfig_path {qconfig_path} exists, skip")
             return
-    dynamic = get_quantize_dynamic(pq_config.model_id_or_path, pq_config, pattern=pattern)
+    dynamic = get_quantize_dynamic(
+        pq_config.model_id_or_path, pq_config, pattern=pattern
+    )
     quantization_config = {
-        'quant_method': 'llmpq',
-        'dynamic': dynamic,
-        'qbits': pq_config.adaptive_qbits,
-        'model_id': pq_config.model_id_or_path,
-        'prepost_bit': pq_config.prepost_bit
+        "quant_method": "llmpq",
+        "dynamic": dynamic,
+        "qbits": pq_config.adaptive_qbits,
+        "model_id": pq_config.model_id_or_path,
+        "prepost_bit": pq_config.prepost_bit,
     }
     # dump the dymaic to tmp
     with open(qconfig_path, "w") as f:
@@ -243,19 +258,22 @@ def create_ada_model(
     logger.info(f"Generate Done, quantization_config {quantization_config}")
 
 
-
 def create_ada_model_dummy(
-        pq_config: PQConfig, 
-        save_dir: str, 
-        pattern: str=r"layers\.(\d+)\.",
-    ):
+    pq_config: PQConfig,
+    save_dir: str,
+    pattern: str = r"layers\.(\d+)\.",
+):
     from llmpq.utils import get_quantize_dynamic
     from huggingface_hub import list_repo_files, hf_hub_download
-    
+
     model_id = pq_config.model_id_or_path
 
     all_files = list_repo_files(model_id)
-    non_weight_files = [file for file in all_files if not file.endswith(('.safetensors', '.bin', '.pth'))]
+    non_weight_files = [
+        file
+        for file in all_files
+        if not file.endswith((".safetensors", ".bin", ".pth"))
+    ]
     for file in non_weight_files:
         try:
             hf_hub_download(repo_id=model_id, filename=file, local_dir=save_dir)
@@ -270,13 +288,15 @@ def create_ada_model_dummy(
         if qbits == pq_config.adaptive_qbits and model_id == pq_config.model_id_or_path:
             logger.info(f"qconfig_path {qconfig_path} exists, skip")
             return
-    dynamic = get_quantize_dynamic(pq_config.model_id_or_path, pq_config, pattern=pattern)
+    dynamic = get_quantize_dynamic(
+        pq_config.model_id_or_path, pq_config, pattern=pattern
+    )
     quantization_config = {
-        'quant_method': 'llmpq',
-        'dynamic': dynamic,
-        'qbits': pq_config.adaptive_qbits,
-        'model_id': pq_config.model_id_or_path,
-        'prepost_bit': pq_config.prepost_bit
+        "quant_method": "llmpq",
+        "dynamic": dynamic,
+        "qbits": pq_config.adaptive_qbits,
+        "model_id": pq_config.model_id_or_path,
+        "prepost_bit": pq_config.prepost_bit,
     }
     # dump the dymaic to tmp
     with open(qconfig_path, "w") as f:

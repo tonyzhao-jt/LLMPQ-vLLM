@@ -3,33 +3,52 @@ import copy
 import itertools
 import math
 import os
+
 # default libs
 import pickle
 from collections import defaultdict
 
 import numpy as np
+
 # setup ilp configs
 import pulp
 
 from llmpq.config import PQConfig, gen_config
 from llmpq.costmodel.comm.utils import get_comm_cost, get_comm_payload_size
 from llmpq.costmodel.core import init_cost_model
-from llmpq.costmodel.lat import (get_latency_with_layer_device_bit_pair,
-                                 lat_prediction, stage_pure_exe_latency)
-from llmpq.costmodel.mem import (check_memory_budget, estimate_all_layer_mem,
-                                 estimate_single_device_mem)
+from llmpq.costmodel.lat import (
+    get_latency_with_layer_device_bit_pair,
+    lat_prediction,
+    stage_pure_exe_latency,
+)
+from llmpq.costmodel.mem import (
+    check_memory_budget,
+    estimate_all_layer_mem,
+    estimate_single_device_mem,
+)
 from llmpq.optimizer.algo.algo_utils import (
-    NOT_AVAILABLE, create_ilp_solver, estimate_min_max_mem, get_combinations,
-    get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    ilp_env, interpret_ilp_result_i_j_b, set_root_folder)
+    NOT_AVAILABLE,
+    create_ilp_solver,
+    estimate_min_max_mem,
+    get_combinations,
+    get_device_topo_available_mem_with_order,
+    get_M_with_bitwidth_pair,
+    ilp_env,
+    interpret_ilp_result_i_j_b,
+    set_root_folder,
+)
 from llmpq.optimizer.algo.argparser import common_argparser
 from llmpq.profiler.indicator.v1 import assign_omega_constant  # noqa
 from llmpq.profiler.indicator.v1 import assign_omega_uniform
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.bits_pair import get_available_bits_pair
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
-from llmpq.utils.v1.miscs import (decouple_result_group, get_default_decode_bz,
-                                  get_factors, partition_a_into_b_bins)
+from llmpq.utils.v1.miscs import (
+    decouple_result_group,
+    get_default_decode_bz,
+    get_factors,
+    partition_a_into_b_bins,
+)
 
 unit = PQConfig.MEM_UNIT
 
@@ -41,6 +60,7 @@ def rename_device_name(D):
         cnt[device_name] += 1
         ref_D[device_name + str(cnt[device_name])] = rank
     return ref_D
+
 
 def reset_device_rank_index(D, current_D):
     # D is the previous rank index

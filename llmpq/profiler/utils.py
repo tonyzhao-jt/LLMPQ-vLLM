@@ -1,5 +1,6 @@
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
+
 def shard_model(model_id: str, save_path: str, layer_num: int = -1):
     config = AutoConfig.from_pretrained(model_id)
     if layer_num == -1:

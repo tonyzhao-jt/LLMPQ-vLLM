@@ -1,4 +1,5 @@
 import argparse
+
 parser = argparse.ArgumentParser()
 # model
 parser.add_argument(
@@ -11,5 +12,6 @@ parser.add_argument(
 args = parser.parse_args()
 
 from transformers import AutoConfig
+
 config = AutoConfig.from_pretrained(args.model)
 print(config.num_hidden_layers)

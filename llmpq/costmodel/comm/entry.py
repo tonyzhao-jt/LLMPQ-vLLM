@@ -6,10 +6,8 @@ import llmpq
 import torch.distributed as dist
 from llmpq.costmodel.comm.profiler import profile_comm
 
-from llmpq.costmodel.comm.utils import (
-    init_env, init_env_gloo,
-    new_nccl_group
-)
+from llmpq.costmodel.comm.utils import init_env, init_env_gloo, new_nccl_group
+
 
 def test_comm_speed():
     data_size_buffer, time_buffer = profile_comm.generate_cost_model_dataset(

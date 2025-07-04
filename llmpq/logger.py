@@ -9,12 +9,12 @@ import colorlog
 _FORMAT = colorlog.ColoredFormatter(
     "%(log_color)s%(levelname)s %(asctime)s %(filename)s:%(lineno)d] %(message)s",
     log_colors={
-        'DEBUG': 'reset',
-        'INFO': 'blue',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'bold_red',
-    }
+        "DEBUG": "reset",
+        "INFO": "blue",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red",
+    },
 )
 _DATE_FORMAT = "%m-%d %H:%M:%S"
 
@@ -57,6 +57,7 @@ def _setup_logger():
 # guaranteed by the Python GIL.
 _setup_logger()
 
+
 def init_logger(name: str):
     # Use the same settings as above for root logger
     logger = logging.getLogger(name)
@@ -64,6 +65,7 @@ def init_logger(name: str):
     logger.addHandler(_default_handler)
     logger.propagate = False
     return logger
+
 
 def assert_log(condition, msg):
     if not condition:

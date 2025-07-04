@@ -1,36 +1,65 @@
-# llm_pq_v2
-LLM-PQ v2
+Here is a polished version of your README:
 
+# LLMPQ-vLLM
+================
 
+LLMPQ with vLLM backend. The backend acts as a hack to allow vLLM serving to be piplining heterogenous and precision (quantization) heterogenous.
 
-# bug fix
+## Installation
+---------------
+
 ```bash
-    export LD_LIBRARY_PATH=/opt/conda/envs/llmpq/lib/python3.10//site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
+pip install -e .
 ```
 
-# EXP models
-3 sizes. Versus 2 hetero case each. 
-# 8b 2 cases?
-```
-    meta-llama/Llama-3.1-8B # 8b
-    deepseek-ai/DeepSeek-R1-Distill-Qwen-32B # 32b
-    meta-llama/Llama-3.1-70B-Instruct-evals # 70b
-```
-llama3.1-8b 
+## Running
+---------
 
-# Implementation Milestones
-全包好了：对于任意模型
-(1)indicator gen：https://github.com/tonyzhao-jt/LLM-PQ/tree/main/scripts/accuracyPPL
-用 gen ind 生成 indicator, hess
-(2)profiler: https://github.com/tonyzhao-jt/LLM-PQ/tree/main/scripts/profile
-https://github.com/vllm-project/vllm/pull/11125/files
-先用下面这个简单测算不同 GPU 下的 Latency （可以加一个 TP 的维度，默认用 TP=node）
-https://github.com/ModelCloud/GPTQModel?tab=readme-ov-file#dynamic-quantization-per-module-quantizeconfig-override
-打包成对应之前的 fit 格式. 通信还是用之前的测法 （可有可无了属于是）
-（明天看一下怎么从 trace 拿数据，应该不复杂）
-(4) 新的 cost model 结果可能要分析一下。包括 component 的时间。
-(新的精度也可以用 vllm 直接跑)
-(3) optimizer
-用优化器解，解完后，得到计划直接用 vllm 跑 (dummy 就行了) (核心是看怎么 PP 了，quant 这边直接 load 就行了)
-(4)讨论一下 chunked prefill 啥的, 从效果上也是堆叠到上面
-PD 分离有点 contradict， KD 分离 本身增加了memory 使用，但 quant 一般永远在 memory scarse 的情况下
+Please ensure your vLLM version is `>=0.8.5` or use [vllm-PQ](https://github.com/tonyzhao-jt/vllm-PQ.git)
+
+```bash
+pip list | grep vllm
+```
+
+### Request
+------------
+
+Use `test/dataset` to generate dummy dataset (check it to modify dataset).
+
+```bash
+python3 dataset_test.py --model meta-llama/Llama-3.1-8B
+```
+
+You will see a `xxx.pkl` under the same folder. Use it as the request.
+
+### Execute
+-------------
+
+Two possible ways to run the PQ:
+
+1. Check `benchmarks/bench_single_card_registry.py` to run the quantization patch (single node).
+
+```bash
+python3 bench_single_card_registry.py --model meta-llama/Llama-3.1-8B --dataset-path /home/tonyzhao/local/LLMPQ-vLLM/test/dataset/cnn.pkl
+```
+
+2. Check files under `exp/` to check distributed inference scripts.
+In that way, you need to use `vllm-PQ`, which embedes the hack into the vLLM source code.
+
+```bash
+git clone https://github.com/tonyzhao-jt/vllm-PQ.git
+git checkout juntao/dev
+cd vllm && pip install -e .
+```
+
+## Notice
+--------
+
+The optimization and profiler hasn't fully compatible to the vLLM backend. We provides final results enduer `exp/`, please modify it at will if you need to perform profiling and optimization calculation.
+
+## Common vLLM Bugs
+-------------------
+
+```bash
+export LD_LIBRARY_PATH=/opt/conda/envs/llmpq/lib/python3.10/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
+```

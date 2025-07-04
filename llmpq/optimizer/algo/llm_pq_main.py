@@ -1,13 +1,16 @@
 import itertools
+
 # import logger
 import logging
 import math
 import os
+
 # default libs
 import pickle
 from collections import defaultdict
 
 import numpy as np
+
 # setup ilp configs
 import pulp
 
@@ -16,15 +19,24 @@ from llmpq.costmodel.comm.utils import get_comm_cost, get_comm_payload_size
 from llmpq.costmodel.core import init_cost_model
 from llmpq.costmodel.lat import get_latency_with_layer_device_bit_pair
 from llmpq.optimizer.algo.algo_utils import (
-    NOT_AVAILABLE, create_ilp_solver, force_zero,
-    get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    interpret_ilp_result_i_j_b, set_root_folder)
+    NOT_AVAILABLE,
+    create_ilp_solver,
+    force_zero,
+    get_device_topo_available_mem_with_order,
+    get_M_with_bitwidth_pair,
+    interpret_ilp_result_i_j_b,
+    set_root_folder,
+)
 from llmpq.profiler.indicator.v1 import assign_omega_constant  # noqa
 from llmpq.profiler.indicator.v1 import assign_omega_uniform
 from llmpq.utils.bits_pair import get_available_bits_pair
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
-from llmpq.utils.v1.miscs import (decouple_result_group, get_default_decode_bz,
-                                  get_factors, partition_a_into_b_bins)
+from llmpq.utils.v1.miscs import (
+    decouple_result_group,
+    get_default_decode_bz,
+    get_factors,
+    partition_a_into_b_bins,
+)
 
 logger = logging.getLogger(__name__)
 

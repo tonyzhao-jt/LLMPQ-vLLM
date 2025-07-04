@@ -14,6 +14,7 @@ from llmpq.dataset import DummyDataset
 from llmpq.utils import get_device_name_by_torch  # noqa
 from vllm import LLM, SamplingParams
 
+
 def profile_model(
     model_id: str,
     model_shard_name: str,
@@ -24,7 +25,7 @@ def profile_model(
     repeat: int = 10,
     PROFILER_RAW: str = "tmp/vllm_profile",  # noqa
     PROFILER_PARSED: str = "tmp/vllm_profile_parsed",  # noqa
-    work_dir: str = '/tmp/llmpq/work_dir' # noqa
+    work_dir: str = "/tmp/llmpq/work_dir",  # noqa
 ) -> Dict[str, Dict[str, float]]:
     # profile the model with given configs.
     from llmpq.profiler.utils import shard_model
@@ -115,7 +116,7 @@ def profile_model(
                     quantization="AWQ",  # noqa
                     gpu_memory_utilization=gpu_memory_utilization,
                 )  # noqa
-            elif qmethod == 'smoothquant':
+            elif qmethod == "smoothquant":
                 llm = LLM(
                     model=model_path,
                     tensor_parallel_size=tp_size,
@@ -172,15 +173,15 @@ def profile_model(
     return output_files
 
 
-PROFILER_RAW = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile"
-PROFILER_PARSED = "/opt/tiger/Saber/llm_pq_v2/examples/tmp/vllm_profile_parsed"
+PROFILER_RAW = "/yourpath//llm_pq_v2/examples/tmp/vllm_profile"
+PROFILER_PARSED = "/yourpath//llm_pq_v2/examples/tmp/vllm_profile_parsed"
 REPEAT = 10
 WARMUP = 5
 
 os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
 if __name__ == "__main__":
     # only profile 2 layers for quant and profiling.
-    model_id = 'Qwen/Qwen2.5-14B-Instruct'
+    model_id = "Qwen/Qwen2.5-14B-Instruct"
     model_shard_name = "Qwen2.5-14B-Instruct_sharded"
     consider_inputs = {
         "batch_size": 128,
@@ -189,10 +190,10 @@ if __name__ == "__main__":
     }
     # consider_bitwidth = [4, 8, 16]
     consider_bitwidth = {
-        'noq': [16], # no quant
+        "noq": [16],  # no quant
         "gptq": [4, 8],  # weight only
         # "awq": [4],  # weight only
-        'smoothquant': [8], # w8a8
+        "smoothquant": [8],  # w8a8
     }
 
     output_files = profile_model(

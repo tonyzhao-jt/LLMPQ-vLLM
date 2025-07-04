@@ -1,14 +1,14 @@
 """
-    v1 comm cost model with alpha beta.
+v1 comm cost model with alpha beta.
 """
+
 import os
 import pickle
 import numpy as np
 
+
 class CommCostModel:
-    def __init__(
-        self, comm_cost_model_folder: str, single_card: bool = False
-    ) -> None:
+    def __init__(self, comm_cost_model_folder: str, single_card: bool = False) -> None:
         self.cost_model = {}
         self.single_card = single_card
         if not single_card and comm_cost_model_folder is not None:
@@ -35,7 +35,7 @@ class CommCostModel:
 
     def predict_comm_time(self, start_rank, end_rank, data_size):
         if self.single_card:
-            return 0 # single card, no inter communication, very small
+            return 0  # single card, no inter communication, very small
         if start_rank == end_rank:
             return 0
         if start_rank in self.rank_map:

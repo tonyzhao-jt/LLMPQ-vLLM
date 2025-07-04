@@ -3,12 +3,17 @@ import os
 from copy import deepcopy
 
 from llmpq.config import PQConfig
-from llmpq.utils import (QUANTIZATION_REGISTRY, get_quantize_dynamic,
-                         quantize_model_adaptive, save_ckpt_dummy)
+from llmpq.utils import (
+    QUANTIZATION_REGISTRY,
+    get_quantize_dynamic,
+    quantize_model_adaptive,
+    save_ckpt_dummy,
+)
 from safetensors.torch import load_file, save_file
 from transformers import AutoConfig
 
 import argparse
+
 parser = argparse.ArgumentParser()
 # model
 parser.add_argument(

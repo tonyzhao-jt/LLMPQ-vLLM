@@ -1,5 +1,5 @@
 import re
-import os 
+import os
 from collections import defaultdict
 from typing import Any, Dict, List, Type, Optional
 
@@ -24,10 +24,12 @@ def register_quantization_method(name: str):
     return decorator
 
 
-def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model\.layers\.(\d+)\."):
-    '''
-        Get quantization dynamic
-    '''
+def get_quantize_dynamic(
+    model_id: str, pq_config: PQConfig, pattern: str = r"model\.layers\.(\d+)\."
+):
+    """
+    Get quantization dynamic
+    """
     ada_bits = list(map(str, pq_config.adaptive_qbits.split(",")))
     # remove the check
     # config = AutoConfig.from_pretrained(model_id)
@@ -67,6 +69,7 @@ def get_quantize_dynamic(model_id: str, pq_config: PQConfig, pattern:str=r"model
     # handle lm head
     return dynamic
 
+
 class BaseQuantizer:
     @staticmethod
     def quantize(model_id: str, quant_path: str, bits: int, **kwargs):
@@ -99,12 +102,13 @@ class GPTQQuantizer(BaseQuantizer):
             f"Model quantized to {bits}-bit using GPTQ and saved to {quant_path}."  # noqa
         )
 
-    
-        
     @staticmethod
-    def quantize_adaptive(model_id: str, quant_path: str, pq_config: PQConfig, **kwargs):
+    def quantize_adaptive(
+        model_id: str, quant_path: str, pq_config: PQConfig, **kwargs
+    ):
         dynamic = get_quantize_dynamic(model_id, pq_config)
         from gptqmodel import GPTQModel, QuantizeConfig
+
         calibration_dataset = load_dataset(
             "allenai/c4",
             data_files="en/c4-train.00001-of-01024.json.gz",
@@ -240,16 +244,22 @@ class AWQQuantizer(BaseQuantizer):
         )  # noqa
 
 
-
 # smoothquant
 @register_quantization_method("smoothquant")
 class SmoothQuantQuantizer(BaseQuantizer):
     @staticmethod
-    def quantize(model_id: str, quant_path: str, bits: int, dataset_path: Optional[str] = None, **kwargs):
-        if bits not in [8, '8-tc']:
+    def quantize(
+        model_id: str,
+        quant_path: str,
+        bits: int,
+        dataset_path: Optional[str] = None,
+        **kwargs,
+    ):
+        if bits not in [8, "8-tc"]:
             raise ValueError("`bits` must be 8 for Smoothquant.")
-        
+
         from datasets import load_dataset
+
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         NUM_CALIBRATION_SAMPLES = 512
         MAX_SEQUENCE_LENGTH = 2048
@@ -257,7 +267,7 @@ class SmoothQuantQuantizer(BaseQuantizer):
         # Load and preprocess the dataset
         if dataset_path is not None and os.path.exists(dataset_path):
             try:
-                ds = load_dataset(dataset_path, split="test_sft") 
+                ds = load_dataset(dataset_path, split="test_sft")
             except Exception as e:
                 print(f"dataset_path {dataset_path} not found, use default dataset")
                 ds = load_dataset("HuggingFaceH4/ultrachat_200k", split="test_sft")
@@ -267,20 +277,32 @@ class SmoothQuantQuantizer(BaseQuantizer):
 
         def preprocess(example):
             if tokenizer.chat_template:
-                return {"text": tokenizer.apply_chat_template(example["messages"], tokenize=False)}
+                return {
+                    "text": tokenizer.apply_chat_template(
+                        example["messages"], tokenize=False
+                    )
+                }
             else:
                 # 假设 example["messages"] 是一个字典，这里将其转换为字符串
                 if isinstance(example["messages"], dict):
                     text = str(example["messages"])
                 elif isinstance(example["messages"], list):
-                    text = ' '.join(map(str, example["messages"]))
+                    text = " ".join(map(str, example["messages"]))
                 else:
                     text = str(example["messages"])
             return {"text": text}
+
         ds = ds.map(preprocess)
 
         def tokenize(sample):
-            return tokenizer(sample["text"], padding=False, max_length=MAX_SEQUENCE_LENGTH, truncation=True, add_special_tokens=False)
+            return tokenizer(
+                sample["text"],
+                padding=False,
+                max_length=MAX_SEQUENCE_LENGTH,
+                truncation=True,
+                add_special_tokens=False,
+            )
+
         ds = ds.map(tokenize, remove_columns=ds.column_names)
 
         from llmcompressor.transformers import oneshot
@@ -307,7 +329,15 @@ class SmoothQuantQuantizer(BaseQuantizer):
             f'Model quantized to {bits}-bit using smoothquant and saved at "{quant_path}".'  # noqa
         )  # noqa
 
-def quantize_model(method: str, model_id: str, quant_path: str, bits: int = 4, dataset_path: Optional[str] = None, **kwargs):
+
+def quantize_model(
+    method: str,
+    model_id: str,
+    quant_path: str,
+    bits: int = 4,
+    dataset_path: Optional[str] = None,
+    **kwargs,
+):
     """
     Quantize a model using the specified method.
 
@@ -327,7 +357,9 @@ def quantize_model(method: str, model_id: str, quant_path: str, bits: int = 4, d
 
 
 def quantize_model_adaptive(
-    model_id: str, quant_path: str, pq_config: PQConfig,
+    model_id: str,
+    quant_path: str,
+    pq_config: PQConfig,
     dataset_path: Optional[str] = None,
 ):  # noqa
     """
@@ -345,4 +377,6 @@ def quantize_model_adaptive(
         )
 
     quantizer_class = QUANTIZATION_REGISTRY[method]
-    quantizer_class.quantize_adaptive(model_id, quant_path, pq_config, dataset_path=dataset_path)
+    quantizer_class.quantize_adaptive(
+        model_id, quant_path, pq_config, dataset_path=dataset_path
+    )

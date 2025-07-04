@@ -10,7 +10,5 @@ if __name__ == "__main__":
         adaptive_qbits="4,4" + ",8,8,8,8,8,8" + ",8,8,8,8,8,8" + ",16,8",
         num_layers=16,
     )
-    create_ada_model(pq_config, './tmp/llama-3.2-1b-ada')
-    pq_config.save('./tmp/llama-3.2-1b-ada') # export the runner scripts
-
-            
+    create_ada_model(pq_config, "./tmp/llama-3.2-1b-ada")
+    pq_config.save("./tmp/llama-3.2-1b-ada")  # export the runner scripts

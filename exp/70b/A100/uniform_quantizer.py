@@ -5,7 +5,7 @@ if __name__ == "__main__":
     # MODEL="Qwen/Qwen2-72B" # num hidden layers: 80
     # local_path = "./tmp/QWen-72B-8bit"
     # local_path = "./tmp/QWen-72B-4bit"
-    MODEL="osllmai-community/Llama-3.3-70B-Instruct"
+    MODEL = "osllmai-community/Llama-3.3-70B-Instruct"
     local_path = "./tmp/Llama-3.3-70B-4bit"
     # local_path = "./tmp/Llama-3.3-70B-8bit"
     # MODEL='meta-llama/Llama-2-70b-chat-hf'
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if num_16bit > 0:
         bit_pack_16 = ",".join(["16"] * num_16bit)
         bit_packs.append(bit_pack_16)
-    adaptive_qbits = ','.join(bit_packs)
+    adaptive_qbits = ",".join(bit_packs)
     pq_config = PQConfig(
         model_id_or_path=MODEL,
         pipeline_parallel_size=2,
@@ -41,6 +41,4 @@ if __name__ == "__main__":
         prepost_bit=8,
     )
     create_ada_model_dummy(pq_config, local_path)
-    pq_config.save(local_path) # export the runner scripts
-
-            
+    pq_config.save(local_path)  # export the runner scripts

@@ -2,13 +2,14 @@ import gzip
 import os
 import shutil
 import time
-from typing import Dict,  Optional
+from typing import Dict, Optional
 
 from llmpq.dataset import DummyDataset
 from llmpq.config import PQConfig
 from llmpq.core import create_mix_precision_shards
 from llmpq.utils import get_device_name_by_torch  # noqa
 from vllm import LLM, SamplingParams
+
 
 def profile_model(
     pq_config: PQConfig,
@@ -19,8 +20,8 @@ def profile_model(
     PROFILER_RAW: Optional[str] = None,  # noqa
     PROFILER_PARSED: Optional[str] = None,  # noqa
     overwrite: bool = False,
-    dtype: str = 'half',
-    num_layers: int = 2, # the sharded layer number
+    dtype: str = "half",
+    num_layers: int = 2,  # the sharded layer number
 ) -> Dict[str, Dict[str, float]]:
     model_id = pq_config.model_id_or_path
     model_id_wo_special = model_id.replace("/", "_")
@@ -30,7 +31,7 @@ def profile_model(
     # set dir
     if PROFILER_RAW is None:
         PROFILER_RAW = os.path.join(work_dir, device_name, "vllm_profile")
-        os.environ['VLLM_TORCH_PROFILER_DIR'] = PROFILER_RAW
+        os.environ["VLLM_TORCH_PROFILER_DIR"] = PROFILER_RAW
 
     if PROFILER_PARSED is None:
         PROFILER_PARSED = os.path.join(work_dir, device_name, "vllm_profile_parsed")
@@ -52,10 +53,11 @@ def profile_model(
     )
 
     bitwidth_model_shard_paths = create_mix_precision_shards(
-        pq_config, overwrite, candidate_bitwidth=set(pq_config.AVAILABLE_BITS),
+        pq_config,
+        overwrite,
+        candidate_bitwidth=set(pq_config.AVAILABLE_BITS),
         num_layers=num_layers,
     )
-
 
     output_files = []
     gpu_memory_utilization = 0.8
@@ -64,13 +66,13 @@ def profile_model(
         "tensor_parallel_size": tp_size,
         "dtype": dtype,
         "gpu_memory_utilization": gpu_memory_utilization,
-        'enable_prefix_caching': False,
+        "enable_prefix_caching": False,
         "enable_chunked_prefill": False,
-        'max_model_len': 2048,
+        "max_model_len": 2048,
     }
 
     for bit, model_path in bitwidth_model_shard_paths.items():
-        LLM_params['model'] = model_path
+        LLM_params["model"] = model_path
         llm = LLM(
             **LLM_params,
         )  # noqa
@@ -95,7 +97,9 @@ def profile_model(
             os.makedirs(PROFILER_PARSED)
         for file in os.listdir(PROFILER_RAW):
             if file.endswith(".gz"):
-                new_file_name = f"{model_id_wo_special}-{bit}-{tp_size}-pt.trace.json.gz"  # noqa
+                new_file_name = (
+                    f"{model_id_wo_special}-{bit}-{tp_size}-pt.trace.json.gz"  # noqa
+                )
                 os.rename(
                     os.path.join(PROFILER_RAW, file),
                     os.path.join(
@@ -113,9 +117,7 @@ def profile_model(
                     ) as f_out:  # noqa
                         shutil.copyfileobj(f_in, f_out)
                         output_files.append(
-                            os.path.join(
-                                PROFILER_PARSED, new_file_name[:-3]
-                            )  # noqa
+                            os.path.join(PROFILER_PARSED, new_file_name[:-3])  # noqa
                         )
     return output_files
 
@@ -126,7 +128,6 @@ if __name__ == "__main__":
     PROFILER_PARSED = f"./tmp/{device_name}/vllm_profile_parsed"
     REPEAT = 10
     WARMUP = 2
-
 
     # only profile 2 layers for quant and profiling.
     for bs in [2, 4, 8]:

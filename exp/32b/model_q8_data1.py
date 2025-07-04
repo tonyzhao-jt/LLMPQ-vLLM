@@ -2,14 +2,14 @@ from llmpq.config import PQConfig
 from llmpq.core import create_ada_model_dummy
 
 if __name__ == "__main__":
-    MODEL="Qwen/Qwen2.5-32B-Instruct" # num hidden layers: 64
+    MODEL = "Qwen/Qwen2.5-32B-Instruct"  # num hidden layers: 64
     local_path = "./tmp/Qwen2.5-32B-Instruct-q8-1"
     num_4bit = 0
     num_8bit = 0
-    hybrid_pack =  ",".join(["8"] * 14) 
-    hybrid_pack_1 =  ",".join(["8"] * 15)
-    hybrid_pack_2 =  ",".join(["8"] * 15)
-    hybrid_pack_3 =  ",".join(["8-tc"] * 20) 
+    hybrid_pack = ",".join(["8"] * 14)
+    hybrid_pack_1 = ",".join(["8"] * 15)
+    hybrid_pack_2 = ",".join(["8"] * 15)
+    hybrid_pack_3 = ",".join(["8-tc"] * 20)
     num_8_tc_bit = 0
     num_16bit = 0
     bit_packs = []
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     if num_16bit > 0:
         bit_pack_16 = ",".join(["16"] * num_16bit)
         bit_packs.append(bit_pack_16)
-    adaptive_qbits = ','.join(bit_packs)
+    adaptive_qbits = ",".join(bit_packs)
     pq_config = PQConfig(
         model_id_or_path=MODEL,
         pipeline_parallel_size=2,
@@ -39,6 +39,4 @@ if __name__ == "__main__":
         prepost_bit=8,
     )
     create_ada_model_dummy(pq_config, local_path)
-    pq_config.save(local_path) # export the runner scripts
-
-            
+    pq_config.save(local_path)  # export the runner scripts

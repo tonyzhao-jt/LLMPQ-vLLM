@@ -113,7 +113,7 @@ def init_env():
 
 
 def new_nccl_group():
-    world_size = int(os.environ['WORLD_SIZE'])
+    world_size = int(os.environ["WORLD_SIZE"])
     # new a same group with the same worldsize
-    group = torch.distributed.new_group(list(range(world_size)), backend='nccl')
+    group = torch.distributed.new_group(list(range(world_size)), backend="nccl")
     return group

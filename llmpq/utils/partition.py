@@ -1,5 +1,6 @@
 from typing import Tuple
 
+
 def is_partition_config_valid(
     partition_config: Tuple[str, int], num_layers: int
 ):  # noqa

@@ -2,6 +2,7 @@ from typing import Dict, List, Optional
 
 from .dataset_base import BaseDataset
 
+
 class DummyDataset(BaseDataset):
     def __init__(self, batch_size: int, prompt_len: int):
         self.batch_size = batch_size

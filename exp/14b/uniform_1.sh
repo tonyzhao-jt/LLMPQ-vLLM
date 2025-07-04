@@ -6,7 +6,7 @@ export VLLM_PP_LAYER_PARTITION="16,16,16"
 
 
 export CUDA_VISIBLE_DEVICES=0
-ray start --address=10.147.194.32:5678
+ray start --address=
 export VLLM_PP_LAYER_PARTITION="16,16,16"
 
 MODEL=Qwen/Qwen2.5-14B-Instruct-GPTQ-Int8

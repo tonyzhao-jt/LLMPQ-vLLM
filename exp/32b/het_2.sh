@@ -8,7 +8,7 @@ export VLLM_PP_LAYER_PARTITION="15,15,15,19"
 
 
 export CUDA_VISIBLE_DEVICES=0
-ray start --address='10.128.97.213:5678'
+ray start --address=
 
 vllm serve Qwen/Qwen2.5-32B-Instruct-GPTQ-Int8 \
     --load-format dummy  \

@@ -1,8 +1,14 @@
 from typing import Tuple
 
 from transformers import AutoModelForCausalLM  # old
-from transformers import (AutoConfig, AutoTokenizer, BloomConfig, LlamaConfig,
-                          OPTConfig, PretrainedConfig)
+from transformers import (
+    AutoConfig,
+    AutoTokenizer,
+    BloomConfig,
+    LlamaConfig,
+    OPTConfig,
+    PretrainedConfig,
+)
 
 
 def get_h1_h2_from_config(model_config: PretrainedConfig) -> Tuple[int, int]:

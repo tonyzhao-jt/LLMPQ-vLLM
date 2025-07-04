@@ -2,10 +2,15 @@ from typing import Dict, List, Optional, Tuple
 
 from .dataset_base import BaseDataset
 from llmpq.logger import init_logger
+
 logger = init_logger(__name__)
+
+
 class CNNDataset(BaseDataset):
-    def __init__(self, data_files:str = None, tokenizer=None):
-        super().__init__(["abisee/cnn_dailymail"], data_files=data_files, tokenizer=tokenizer)
+    def __init__(self, data_files: str = None, tokenizer=None):
+        super().__init__(
+            ["abisee/cnn_dailymail", "1.0.0"], data_files=data_files, tokenizer=tokenizer
+        )
 
     def construct_prompt(self, sampled_data: List[Dict]) -> List[str]:
         """
@@ -23,7 +28,7 @@ class CNNDataset(BaseDataset):
             prompt = f"Summarize the article: {question}\n"
             prompts.append(prompt)
         return prompts
-    
+
     def construct_output(self, sampled_data: List[Dict]) -> List[str]:
         """
         Construct prompts for the GPQA dataset.
@@ -38,8 +43,9 @@ class CNNDataset(BaseDataset):
             outputs.append(highlights)
         return outputs
 
-    
-    def sample_n_serving_prompt(self, n: int, max_seq_len: Optional[int] = None) -> List[Tuple[str, int, Optional[int]]]:
+    def sample_n_serving_prompt(
+        self, n: int, max_seq_len: Optional[int] = None
+    ) -> List[Tuple[str, int, Optional[int]]]:
         """
         NOTE the function is not correct for the moment.
         As tokenizer is needed.

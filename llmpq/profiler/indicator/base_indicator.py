@@ -49,9 +49,11 @@ class MixPrecisionIndicatorContainer:
             "name": self.name,
             "cont": {
                 str(precision): {
-                    "df": indicator.df.to_dict(orient="split")
-                    if indicator.df is not None
-                    else None,
+                    "df": (
+                        indicator.df.to_dict(orient="split")
+                        if indicator.df is not None
+                        else None
+                    ),
                     "support_module_wise": indicator.support_module_wise,
                 }
                 for precision, indicator in self.cont.items()

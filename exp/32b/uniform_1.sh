@@ -4,7 +4,7 @@ export VLLM_PP_LAYER_PARTITION="32,32"
 
 
 export CUDA_VISIBLE_DEVICES=0
-ray start --address=10.147.194.32:5678
+ray start --address=
 export VLLM_PP_LAYER_PARTITION="32,32"
 
 vllm serve Qwen/Qwen2.5-32B-Instruct-GPTQ-Int4 \

@@ -1,12 +1,10 @@
-# run vllm in arbitrary partition
-# SPDX-License-Identifier: Apache-2.0
-# https://github.com/vllm-project/vllm/blob/main/tests/distributed/test_pipeline_partition.py
-# https://github.com/vllm-project/vllm/tree/main/tests/distributed
+'''
+    Test pipeline parallel with arbitrary partition config.
+'''
 import os
 
 from transformers import AutoConfig
 from vllm import SamplingParams
-
 from llmpq.optimizer import is_partition_config_valid
 
 # Sample prompts.
@@ -30,7 +28,10 @@ is_partition_config_valid(
 )  # noqa
 os.environ["VLLM_PP_LAYER_PARTITION"] = partition_config
 
+
 """
+    Running scripts
+
     vllm serve meta-llama/Llama-3.2-1B \
     --tensor-parallel-size 4 \
     --pipeline-parallel-size 2 \

@@ -1,8 +1,10 @@
 import os
+
 # default libs
 import pickle
 
 import numpy as np
+
 # setup ilp configs
 import pulp
 
@@ -10,15 +12,23 @@ from llmpq.config import PQConfig, gen_config
 from llmpq.costmodel.core import init_cost_model
 from llmpq.costmodel.mem import estimate_all_layer_mem
 from llmpq.optimizer.algo.algo_utils import (
-    NOT_AVAILABLE, create_ilp_solver, estimate_min_max_mem,
-    get_device_topo_available_mem_with_order, get_M_with_bitwidth_pair,
-    interpret_ilp_result_i_j_b, set_root_folder)
+    NOT_AVAILABLE,
+    create_ilp_solver,
+    estimate_min_max_mem,
+    get_device_topo_available_mem_with_order,
+    get_M_with_bitwidth_pair,
+    interpret_ilp_result_i_j_b,
+    set_root_folder,
+)
 from llmpq.profiler.indicator.v1 import assign_omega_uniform, assign_omega_constant
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.bits_pair import get_available_bits_pair
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
-from llmpq.utils.v1.miscs import (decouple_result_group, get_default_decode_bz,
-                                  partition_a_into_b_bins)
+from llmpq.utils.v1.miscs import (
+    decouple_result_group,
+    get_default_decode_bz,
+    partition_a_into_b_bins,
+)
 
 unit = PQConfig.MEM_UNIT
 

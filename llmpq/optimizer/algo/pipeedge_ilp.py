@@ -7,12 +7,20 @@ import pulp
 from llmpq.config import PQConfig, gen_config
 from llmpq.costmodel.lat import get_latency_with_layer_device_bit_pair
 from llmpq.optimizer.algo.algo_utils import (
-    NOT_AVAILABLE, create_ilp_solver, get_device_topo_available_mem_with_order,
-    get_M_with_bitwidth_pair, interpret_ilp_result_i_j_b, set_root_folder)
+    NOT_AVAILABLE,
+    create_ilp_solver,
+    get_device_topo_available_mem_with_order,
+    get_M_with_bitwidth_pair,
+    interpret_ilp_result_i_j_b,
+    set_root_folder,
+)
 from llmpq.utils import assign_uniform_bit
 from llmpq.utils.v1.device import create_device_mesh_and_mem, get_device_info
-from llmpq.utils.v1.miscs import (decouple_result_group, get_default_decode_bz,
-                                  partition_a_into_b_bins)
+from llmpq.utils.v1.miscs import (
+    decouple_result_group,
+    get_default_decode_bz,
+    partition_a_into_b_bins,
+)
 
 # setup ilp configs
 
@@ -206,7 +214,7 @@ def main(args):
     )  # use regression model to predict or load predictor
     # target model configuration
     device_info = get_device_info(device_names, device_numbers)
-    comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}" # noqa
+    comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}"  # noqa
     cost_model_store_path = None  # initialize the cost model
 
     model_mem_estimator, comm_cost_model, lat_cost_model, T = args.init_pack

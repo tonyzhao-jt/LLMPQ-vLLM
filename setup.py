@@ -21,12 +21,12 @@ setup(
     packages=find_packages(),
     install_requires=get_requirements(),
     entry_points={
-        'console_scripts': [
-            'llmpq-algo = llmpq.optimizer.algo.entry:algo_main',
+        "console_scripts": [
+            "llmpq-algo = llmpq.optimizer.algo.entry:algo_main",
         ]
     },
     author="Tony",
     author_email="juntaozh@connect.hku.hk",
     description="Serving LLM on Heterogeneous Clusters with Phase-Aware Partition and Adaptive Quantization",  # noqa
-    url="https://github.com/tonyzhao-jt/LLM-PQ/tree/main",
+    url="https://github.com/tonyzhao-jt/LLMPQ-vLLM.git",
 )

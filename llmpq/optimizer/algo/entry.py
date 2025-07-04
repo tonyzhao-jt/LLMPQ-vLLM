@@ -4,21 +4,26 @@ import time
 
 # globals
 from llmpq.config import PQConfig, gen_config
+
 # device
 from llmpq.costmodel.core import init_cost_model
 from llmpq.costmodel.lat import run_simu
 from llmpq.costmodel.mem import check_memory_budget
+
 # logger
 from llmpq.logger import assert_log, init_logger
+
 # methods
 from llmpq.optimizer.algo.adabits import main as adaptive_bits_main
+
 # arg parser
-from llmpq.optimizer.algo.algo_utils import (NOT_AVAILABLE,
-                                             get_final_strat_file_name,
-                                             set_root_folder)
+from llmpq.optimizer.algo.algo_utils import (
+    NOT_AVAILABLE,
+    get_final_strat_file_name,
+    set_root_folder,
+)
 from llmpq.optimizer.algo.argparser import common_argparser
-from llmpq.optimizer.algo.interpreter import \
-    convert_to_llm_pq_result2partitions
+from llmpq.optimizer.algo.interpreter import convert_to_llm_pq_result2partitions
 from llmpq.optimizer.algo.llm_pq_h import main as llm_pq_h_main
 from llmpq.optimizer.algo.llm_pq_main import main as llm_pq_main
 from llmpq.optimizer.algo.pipeedge_ilp import main as pipeedge_ilp_main
@@ -80,9 +85,7 @@ def algo_main():
     config = args.config
     comm_cost_model_dir = f"{args.comm_cost_model_dir}/{device_info}"
     root_folder = set_root_folder()
-    cost_model_store_path = os.path.join(
-        root_folder, "cost_model", device_info
-    )
+    cost_model_store_path = os.path.join(root_folder, "cost_model", device_info)
     (
         model_mem_estimator,
         comm_cost_model,
@@ -99,8 +102,6 @@ def algo_main():
         comm_cost_model_dir,
         cost_model_store_path,
     )
-
-
 
     args.init_pack = (model_mem_estimator, comm_cost_model, lat_cost_model, T)
     lat_cost_model.update_profiled_result(args.lat_profile_dir)
