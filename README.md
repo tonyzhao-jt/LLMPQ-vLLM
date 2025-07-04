@@ -63,3 +63,23 @@ The optimization and profiler hasn't fully compatible to the vLLM backend. We pr
 ```bash
 export LD_LIBRARY_PATH=/opt/conda/envs/llmpq/lib/python3.10/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
 ```
+
+## Citation
+If you use LLM-PQ for your research, please cite our [paper](https://dl.acm.org/doi/10.1145/3627535.3638480):
+```bibtex
+@inproceedings{10.1145/3627535.3638480,
+author = {Zhao, Juntao and Wan, Borui and Wu, Chuan and Peng, Yanghua and Lin, Haibin},
+title = {POSTER: LLM-PQ:Serving LLM on Heterogeneous Clusters with Phase-Aware Partition and Adaptive Quantization},
+year = {2024},
+isbn = {9798400704352},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3627535.3638480},
+doi = {10.1145/3627535.3638480},
+pages = {460–462},
+keywords = {LM serving, heterogenous cluster, quantization},
+series = {PPoPP '24}
+}
+```
+
+
